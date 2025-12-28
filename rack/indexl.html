@@ -152,7 +152,8 @@
 <div id="toast">No user in list!!</div>
 
 <script>
-const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbx57Wyj83FsquKKs2QWnFqLro_7TS6h_lMOIJ-BaCFOB4RMebviNgSbzQyOk-dV9uSo5Q/exec';
+const WEB_APP_URL =
+  'https://yacht-enhance-josh-mas.trycloudflare.com/TSN/getMasterData';
 const TOKEN = 'abcd1234';
 
 const OLTS = [
@@ -172,7 +173,7 @@ async function loadData() {
     }
   });
 
-  const res = await fetch(WEB_APP_URL + '?token=' + TOKEN);
+  const res = await fetch(WEB_APP_URL);
   const data = await res.json();
 
   dashboardA7 = Number(data.dashboardA7);
