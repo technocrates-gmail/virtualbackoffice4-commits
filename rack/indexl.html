@@ -6,15 +6,36 @@
 <title>Rack</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css"> 
+<link rel="stylesheet" href="styles.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<style>
+body{font-family:Roboto;background:#f4f6fb;margin:0}
+table{border-collapse:collapse;width:100%}
+th,td{border:1px solid #ccc;padding:6px;text-align:center}
+th{background:#e0e6ff}
+.separator th{background:#b9c4ff;font-size:18px}
+.olt-name{background:#d6dbff}
+.clickable{cursor:pointer;font-weight:600}
+#loadingOverlay{position:fixed;inset:0;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999}
+.spinner{width:40px;height:40px;border:4px solid #ccc;border-top:4px solid #4a67ff;border-radius:50%;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#userModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);align-items:center;justify-content:center;z-index:1000}
+#userModalContent{background:#fff;padding:15px;max-height:90%;overflow:auto;width:90%}
+.closeBtn{float:right;font-size:22px;cursor:pointer}
+.red{background:#ffb3b3}
+.pink{background:#ffd6d6}
+#toast{visibility:hidden;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+background:#333;color:#fff;padding:10px 20px;border-radius:6px}
+#toast.show{visibility:visible}
+</style>
 </head>
 
 <body>
 
 <div id="loadingOverlay">
   <div class="spinner"></div>
-  <p>Prepairing ...</p>
+  <p>Preparing…</p>
 </div>
 
 <div id="matrixHolder">
@@ -27,357 +48,142 @@
   <th>Total</th>
 </tr>
 
-<tr class="separator">
-  <th colspan="11">TSN Window</th>
+<tr class="separator"><th colspan="11">TSN Window</th></tr>
+
+<!-- O1I2 -->
+<tr>
+<th rowspan="4" class="olt-name">O1I2</th>
+<th>Users</th>
+<td id="pon1-O1I2" class="clickable"></td>
+<td id="pon2-O1I2" class="clickable"></td>
+<td id="pon3-O1I2" class="clickable"></td>
+<td id="pon4-O1I2" class="clickable"></td>
+<td id="pon5-O1I2" class="clickable"></td>
+<td id="pon6-O1I2" class="clickable"></td>
+<td id="pon7-O1I2" class="clickable"></td>
+<td id="pon8-O1I2" class="clickable"></td>
+<td id="oltTotal-O1I2"></td>
+</tr>
+<tr>
+<th>Offline</th>
+<td id="off1-O1I2" class="clickable"></td>
+<td id="off2-O1I2" class="clickable"></td>
+<td id="off3-O1I2" class="clickable"></td>
+<td id="off4-O1I2" class="clickable"></td>
+<td id="off5-O1I2" class="clickable"></td>
+<td id="off6-O1I2" class="clickable"></td>
+<td id="off7-O1I2" class="clickable"></td>
+<td id="off8-O1I2" class="clickable"></td>
+<td id="oltOffTotal-O1I2"></td>
+</tr>
+<tr>
+<th>Ticket</th>
+<td id="tick1-O1I2" class="clickable"></td>
+<td id="tick2-O1I2" class="clickable"></td>
+<td id="tick3-O1I2" class="clickable"></td>
+<td id="tick4-O1I2" class="clickable"></td>
+<td id="tick5-O1I2" class="clickable"></td>
+<td id="tick6-O1I2" class="clickable"></td>
+<td id="tick7-O1I2" class="clickable"></td>
+<td id="tick8-O1I2" class="clickable"></td>
+<td id="oltTickTotal-O1I2"></td>
+</tr>
+<tr>
+<th>Line</th>
+<td id="stat1-O1I2"></td><td id="stat2-O1I2"></td><td id="stat3-O1I2"></td><td id="stat4-O1I2"></td>
+<td id="stat5-O1I2"></td><td id="stat6-O1I2"></td><td id="stat7-O1I2"></td><td id="stat8-O1I2"></td>
+<td></td>
 </tr>
 
-<!-- ================= O1I2 ================= -->
+<!-- O2I3 (same layout) -->
 <tr>
-  <th rowspan="4" class="olt-name">O1I2</th>
-  <th>Users</th>
-  <td id="pon1-O1I2" class="clickable"></td>
-  <td id="pon2-O1I2" class="clickable"></td>
-  <td id="pon3-O1I2" class="clickable"></td>
-  <td id="pon4-O1I2" class="clickable"></td>
-  <td id="pon5-O1I2" class="clickable"></td>
-  <td id="pon6-O1I2" class="clickable"></td>
-  <td id="pon7-O1I2" class="clickable"></td>
-  <td id="pon8-O1I2" class="clickable"></td>
-  <td id="oltTotal-O1I2" class="clickable"></td>
+<th rowspan="4" class="olt-name">O2I3</th>
+<th>Users</th>
+<td id="pon1-O2I3"></td><td id="pon2-O2I3"></td><td id="pon3-O2I3"></td><td id="pon4-O2I3"></td>
+<td id="pon5-O2I3"></td><td id="pon6-O2I3"></td><td id="pon7-O2I3"></td><td id="pon8-O2I3"></td>
+<td id="oltTotal-O2I3"></td>
 </tr>
 <tr>
-  <th>Offline</th>
-  <td id="off1-O1I2" class="clickable"></td>
-  <td id="off2-O1I2" class="clickable"></td>
-  <td id="off3-O1I2" class="clickable"></td>
-  <td id="off4-O1I2" class="clickable"></td>
-  <td id="off5-O1I2" class="clickable"></td>
-  <td id="off6-O1I2" class="clickable"></td>
-  <td id="off7-O1I2" class="clickable"></td>
-  <td id="off8-O1I2" class="clickable"></td>
-  <td id="oltOffTotal-O1I2" class="clickable"></td>
+<th>Offline</th>
+<td id="off1-O2I3"></td><td id="off2-O2I3"></td><td id="off3-O2I3"></td><td id="off4-O2I3"></td>
+<td id="off5-O2I3"></td><td id="off6-O2I3"></td><td id="off7-O2I3"></td><td id="off8-O2I3"></td>
+<td id="oltOffTotal-O2I3"></td>
 </tr>
 <tr>
-  <th>Ticket</th>
-  <td id="tick1-O1I2" class="clickable"></td>
-  <td id="tick2-O1I2" class="clickable"></td>
-  <td id="tick3-O1I2" class="clickable"></td>
-  <td id="tick4-O1I2" class="clickable"></td>
-  <td id="tick5-O1I2" class="clickable"></td>
-  <td id="tick6-O1I2" class="clickable"></td>
-  <td id="tick7-O1I2" class="clickable"></td>
-  <td id="tick8-O1I2" class="clickable"></td>
-  <td id="oltTickTotal-O1I2" class="clickable"></td>
+<th>Ticket</th>
+<td id="tick1-O2I3"></td><td id="tick2-O2I3"></td><td id="tick3-O2I3"></td><td id="tick4-O2I3"></td>
+<td id="tick5-O2I3"></td><td id="tick6-O2I3"></td><td id="tick7-O2I3"></td><td id="tick8-O2I3"></td>
+<td id="oltTickTotal-O2I3"></td>
 </tr>
 <tr>
-  <th>Line</th>
-  <td id="stat1-O1I2"></td>
-  <td id="stat2-O1I2"></td>
-  <td id="stat3-O1I2"></td>
-  <td id="stat4-O1I2"></td>
-  <td id="stat5-O1I2"></td>
-  <td id="stat6-O1I2"></td>
-  <td id="stat7-O1I2"></td>
-  <td id="stat8-O1I2"></td>
-  <td></td>
-</tr>
-
-<!-- ================= O2I3 ================= -->
-<tr>
-  <th rowspan="4" class="olt-name">O2I3</th>
-  <th>Users</th>
-  <td id="pon1-O2I3" class="clickable"></td>
-  <td id="pon2-O2I3" class="clickable"></td>
-  <td id="pon3-O2I3" class="clickable"></td>
-  <td id="pon4-O2I3" class="clickable"></td>
-  <td id="pon5-O2I3" class="clickable"></td>
-  <td id="pon6-O2I3" class="clickable"></td>
-  <td id="pon7-O2I3" class="clickable"></td>
-  <td id="pon8-O2I3" class="clickable"></td>
-  <td id="oltTotal-O2I3" class="clickable"></td>
-</tr>
-<tr>
-  <th>Offline</th>
-  <td id="off1-O2I3" class="clickable"></td>
-  <td id="off2-O2I3" class="clickable"></td>
-  <td id="off3-O2I3" class="clickable"></td>
-  <td id="off4-O2I3" class="clickable"></td>
-  <td id="off5-O2I3" class="clickable"></td>
-  <td id="off6-O2I3" class="clickable"></td>
-  <td id="off7-O2I3" class="clickable"></td>
-  <td id="off8-O2I3" class="clickable"></td>
-  <td id="oltOffTotal-O2I3" class="clickable"></td>
-</tr>
-<tr>
-  <th>Ticket</th>
-  <td id="tick1-O2I3" class="clickable"></td>
-  <td id="tick2-O2I3" class="clickable"></td>
-  <td id="tick3-O2I3" class="clickable"></td>
-  <td id="tick4-O2I3" class="clickable"></td>
-  <td id="tick5-O2I3" class="clickable"></td>
-  <td id="tick6-O2I3" class="clickable"></td>
-  <td id="tick7-O2I3" class="clickable"></td>
-  <td id="tick8-O2I3" class="clickable"></td>
-  <td id="oltTickTotal-O2I3" class="clickable"></td>
-</tr>
-<tr>
-  <th>Line</th>
-  <td id="stat1-O2I3"></td>
-  <td id="stat2-O2I3"></td>
-  <td id="stat3-O2I3"></td>
-  <td id="stat4-O2I3"></td>
-  <td id="stat5-O2I3"></td>
-  <td id="stat6-O2I3"></td>
-  <td id="stat7-O2I3"></td>
-  <td id="stat8-O2I3"></td>
-  <td></td>
+<th>Line</th>
+<td id="stat1-O2I3"></td><td id="stat2-O2I3"></td><td id="stat3-O2I3"></td><td id="stat4-O2I3"></td>
+<td id="stat5-O2I3"></td><td id="stat6-O2I3"></td><td id="stat7-O2I3"></td><td id="stat8-O2I3"></td>
+<td></td>
 </tr>
 
 </table>
 </div>
 
-<!-- ================= MODAL ================= -->
 <div id="userModal">
-  <div id="userModalContent">
-    <span class="closeBtn" onclick="closeModal()">&times;</span>
-    <div id="modalButtons"></div>
-    <div id="screenshotContent">
-      <h3 id="modalTitle"></h3>
-      <div id="modalSubTitle"></div>
-      <div id="userDetails"></div>
-    </div>
-  </div>
+<div id="userModalContent">
+<span class="closeBtn" onclick="closeModal()">&times;</span>
+<h3 id="modalTitle"></h3>
+<div id="userDetails"></div>
+</div>
 </div>
 
-<div id="toast">No user in list!!</div>
+<div id="toast">No users</div>
 
 <script>
-const WEB_APP_URL =
-  'https://app.vbo.co.in/TSN/getMasterData';
-//const TOKEN = 'abcd1234';
-
-const OLTS = [
-  { id: 'O1I2', pons: 8 },
-  { id: 'O2I3', pons: 8 }
-];
+const API_URL = 'https://app.vbo.co.in/TSN/complains';
 
 let oltData = {};
-let dashboardA7 = null;
 
-async function loadData() {
-  oltData = {};
-
-  OLTS.forEach(o => {
-    for (let i = 1; i <= o.pons; i++) {
-      oltData[o.id + 'P' + i] = { all: [], off: [], tick: [], drops: [] };
-    }
-  });
-
-  const res = await fetch(WEB_APP_URL);
+async function loadData(){
+  const res = await fetch(API_URL);
   const data = await res.json();
-
-  dashboardA7 = Number(data.dashboardA7);
   const rows = data.rows || [];
 
-  OLTS.forEach(o => {
-    let total = 0, offTotal = 0, tickTotal = 0;
+  document.querySelectorAll('td').forEach(td=>td.textContent='');
+  oltData = {};
 
-    for (let i = 1; i <= o.pons; i++) {
-      const nmid = o.id + 'P' + i;
+  rows.forEach(r=>{
+    if(!r.Serial) return;
+    const ponDigit = r.Serial.slice(-1);
+    if(!/[1-8]/.test(ponDigit)) return;
 
-      const users = rows.filter(r =>
-        (r.NMID || '').trim().toUpperCase() === nmid
-      );
+    const pon = 'P'+ponDigit;
+    const olt = r.Serial.startsWith('PPCT') ? 'O1I2' : 'O2I3';
+    const key = olt+pon;
 
-      const off = users.filter(r => r.Downs);
-      const tick = users.filter(r => r.Ticket);
-      const drops = users.map(r => r.Drops).filter(v => v && v !== '');
+    if(!oltData[key]) oltData[key]={all:[],off:[],tick:[]};
+    oltData[key].all.push(r);
+    if(r["User status"]==="DOWN") oltData[key].off.push(r);
+    if(r.Ticket) oltData[key].tick.push(r);
+  });
 
-      oltData[nmid] = { all: users, off, tick, drops };
-
-      document.getElementById(`pon${i}-${o.id}`).textContent = users.length || '';
-      document.getElementById(`off${i}-${o.id}`).textContent = off.length || '';
-      document.getElementById(`tick${i}-${o.id}`).textContent = tick.length || '';
-
-      const statusCell = document.getElementById(`stat${i}-${o.id}`);
-      if (!isNaN(dashboardA7)) {
-        statusCell.textContent = drops.length < dashboardA7 ? '🟢' : '🔴';
-      } else {
-        statusCell.textContent = '-';
-      }
-
-      total += users.length;
-      offTotal += off.length;
-      tickTotal += tick.length;
+  ['O1I2','O2I3'].forEach(olt=>{
+    let tot=0,off=0,tick=0;
+    for(let i=1;i<=8;i++){
+      const k=olt+'P'+i;
+      const d=oltData[k]||{all:[],off:[],tick:[]};
+      document.getElementById(`pon${i}-${olt}`).textContent=d.all.length||'';
+      document.getElementById(`off${i}-${olt}`).textContent=d.off.length||'';
+      document.getElementById(`tick${i}-${olt}`).textContent=d.tick.length||'';
+      document.getElementById(`stat${i}-${olt}`).textContent=d.off.length?'🔴':'🟢';
+      tot+=d.all.length; off+=d.off.length; tick+=d.tick.length;
     }
-
-    document.getElementById(`oltTotal-${o.id}`).textContent = total || '';
-    document.getElementById(`oltOffTotal-${o.id}`).textContent = offTotal || '';
-    document.getElementById(`oltTickTotal-${o.id}`).textContent = tickTotal || '';
+    document.getElementById(`oltTotal-${olt}`).textContent=tot||'';
+    document.getElementById(`oltOffTotal-${olt}`).textContent=off||'';
+    document.getElementById(`oltTickTotal-${olt}`).textContent=tick||'';
   });
 
-  attachEventListeners();
-  document.getElementById('loadingOverlay').style.display = 'none';
+  document.getElementById('loadingOverlay').style.display='none';
 }
 
-/* EVENTS + MODAL LOGIC (UNCHANGED CORE) */
-
-function showToast() {
-  const t = document.getElementById('toast');
-  t.className = 'show';
-  setTimeout(() => t.className = '', 3000);
-}
-
-function attachEventListeners() {
-  OLTS.forEach(o => {
-    for (let i = 1; i <= o.pons; i++) {
-      document.getElementById(`pon${i}-${o.id}`).onclick =
-        () => showUsers('all', o.id + 'P' + i, o.id, 'P' + i);
-      document.getElementById(`off${i}-${o.id}`).onclick =
-        () => showUsers('off', o.id + 'P' + i, o.id, 'P' + i);
-      document.getElementById(`tick${i}-${o.id}`).onclick =
-        () => showUsers('tick', o.id + 'P' + i, o.id, 'P' + i);
-    }
-    document.getElementById(`oltTotal-${o.id}`).onclick =
-      () => showOltUsers('all', o.id, o.pons);
-    document.getElementById(`oltOffTotal-${o.id}`).onclick =
-      () => showOltUsers('off', o.id, o.pons);
-    document.getElementById(`oltTickTotal-${o.id}`).onclick =
-      () => showOltUsers('tick', o.id, o.pons);
-  });
-}
-
-function showUsers(type, nmid, olt, pon) {
-  const users = oltData[nmid][type];
-  if (!users.length) return showToast();
-  renderUsers(users, `OLT: ${olt} | ${pon}`);
-}
-
-function showOltUsers(type, olt, maxPon) {
-  let users = [];
-  for (let i = 1; i <= maxPon; i++) {
-    users.push(...oltData[olt + 'P' + i][type]);
-  }
-  if (!users.length) return showToast();
-  renderUsers(users, `OLT: ${olt}`);
-}
-
-function renderUsers(users, sub) {
-  document.getElementById('modalTitle').textContent = 'Users Details';
-  document.getElementById('modalSubTitle').textContent = sub;
-
-  const table = document.createElement('table');
-  table.innerHTML =
-  '<tr>' +
-  '<th>Sn</th>' +
-  '<th>Name</th>' +
-  '<th>User ID</th>' +
-  '<th>Number</th>' +
-  '<th>Power</th>' +
-  '<th>Location</th>' +
-  '</tr>';
-
-
-  users.forEach((u, i) => {
-    const tr = document.createElement('tr');
-
-    if (u.Ticket) tr.classList.add('red', 'blink');
-    else if (u.Downs) tr.classList.add('pink', 'blink');
-
-    tr.innerHTML = `
-  <td>${i + 1}</td>
-   <td>${u.Name || ''}</td>
-  <td>${u.Users || ''}</td>
-  <td>${u.Number || ''}</td>
-  <td>${u.Power !== null && u.Power !== '' ? Number(u.Power).toFixed(2) : ''}</td>
-  <td>${u.Location || ''}</td>
-`;
-
-    table.appendChild(tr);
-  });
-
-  document.getElementById('userDetails').innerHTML = '';
-  document.getElementById('userDetails').appendChild(table);
-
-  document.getElementById('modalButtons').innerHTML =
-    '<button onclick="downloadCSV()">Download CSV</button>' +
-    '<button onclick="shareShot()">Share Screenshot</button>';
-
-  window.currentUsers = users;
-  document.getElementById('userModal').style.display = 'flex';
-}
-
-function closeModal() {
-  document.getElementById('userModal').style.display = 'none';
-}
-
-function downloadCSV() {
-  let csv = 'Sn,Name,Number\n';
-  window.currentUsers.forEach((u,i)=>{
-    csv += `${i+1},"${u.Name||''}","${u.Number||''}"\n`;
-  });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
-  a.download = 'users.csv';
-  a.click();
-}
-
-function shareShot() {
-
-  const modal = document.getElementById('userModalContent');
-  const table = document.querySelector('#userDetails table');
-
-  if (!table) {
-    alert('Table not found');
-    return;
-  }
-
-  // save modal styles
-  const oldWidth = modal.style.width;
-  const oldMaxWidth = modal.style.maxWidth;
-  const oldOverflow = modal.style.overflowX;
-
-  // save table styles
-  const oldTableLayout = table.style.tableLayout;
-  const oldTableWidth = table.style.width;
-
-  // force full width
-  modal.style.width = 'auto';
-  modal.style.maxWidth = 'none';
-  modal.style.overflowX = 'visible';
-
-  table.style.tableLayout = 'auto';
-  table.style.width = 'max-content';
-
-  html2canvas(table, {
-    backgroundColor: '#ffffff',
-    scale: 2,
-    scrollX: 0,
-    scrollY: 0,
-    useCORS: true
-  }).then(canvas => {
-
-    // restore styles
-    modal.style.width = oldWidth;
-    modal.style.maxWidth = oldMaxWidth;
-    modal.style.overflowX = oldOverflow;
-
-    table.style.tableLayout = oldTableLayout;
-    table.style.width = oldTableWidth;
-
-    // download PNG (WhatsApp friendly)
-    const a = document.createElement('a');
-    a.href = canvas.toDataURL('image/png');
-    a.download = 'users-details.png';
-    a.click();
-  });
-}
-
-
-window.onload = () => {
-  loadData();
-  setInterval(loadData, 30000);
-};
+function closeModal(){document.getElementById('userModal').style.display='none'}
+window.onload=()=>{loadData();setInterval(loadData,30000)}
 </script>
 
 </body>
