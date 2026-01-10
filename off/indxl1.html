@@ -25,23 +25,42 @@
   </div>
 </header>
 
+<!-- Global Search and Power Range -->
+<div class="filters-inline">
+  <input id="globalSearch" placeholder="Search anything..." type="text">
+  <input id="powerMin" placeholder="Min Power" type="number" step="0.1">
+  <input id="powerMax" placeholder="Max Power" type="number" step="0.1">
+</div>
+
 <div id="tableWrap">
   <table id="dataTable">
     <thead>
       <tr>
-        <th>PON</th>
+        <th>
+          PON
+          <select id="filterPon"><option value="">All</option></select>
+        </th>
         <th>User ID</th>
         <th>Mobile</th>
         <th>Name</th>
         <th>Mac / Serial</th>
         <th>Down</th>
         <th>Remark</th>
-        <th>Team</th>
-        <th>Mode</th>
+        <th>
+          Team
+          <select id="filterTeam"><option value="">All</option></select>
+        </th>
+        <th>
+          Mode
+          <select id="filterMode"><option value="">All</option></select>
+        </th>
         <th>Power</th>
         <th>Complain</th>
         <th>Location</th>
-        <th>Status</th>
+        <th>
+          Status
+          <select id="filterStatus"><option value="">All</option></select>
+        </th>
       </tr>
     </thead>
     <tbody></tbody>
@@ -55,163 +74,7 @@
 
 <div id="toast" role="status" aria-live="polite"></div>
 
-<script>
-// ──────────────────────────────────────────────────────────────────────────────
-// Your original JavaScript (almost unchanged)
-// ──────────────────────────────────────────────────────────────────────────────
-
-const CLIENT = "TSN";
-const API_URL    = `https://app.vbo.co.in/${CLIENT}/complains`;
-const API_MARK   = `https://app.vbo.co.in/${CLIENT}/mark_complain`;
-const API_DELETE = `https://app.vbo.co.in/${CLIENT}/delete_complain`;
-
-let rawRows = [];
-let filtered = [];
-let currentMode = "offline";
-
-const tbody   = document.querySelector("#dataTable tbody");
-const spinner = document.getElementById("spinnerOverlay");
-const toast   = document.getElementById("toast");
-
-function showSpinner() { spinner.style.display = "flex"; }
-function hideSpinner() { spinner.style.display = "none"; }
-
-function showToast(msg) {
-  toast.textContent = msg;
-  toast.classList.add("show");
-  setTimeout(() => toast.classList.remove("show"), 3000);
-}
-
-async function fetchData() {
-  showSpinner();
-  try {
-    const res = await fetch(API_URL);
-    const data = await res.json();
-    rawRows = data.rows || [];
-    applyMode();
-  } catch (err) {
-    showToast("Failed to load data");
-  } finally {
-    hideSpinner();
-  }
-}
-
-function applyMode() {
-  if (currentMode === "offline") {
-    filtered = rawRows.filter(r => r["User status"] === "DOWN");
-  }
-  else if (currentMode === "complains") {
-    filtered = rawRows.filter(r => r.Ticket && r.Ticket !== "");
-  }
-  else if (currentMode === "drops") {
-    filtered = rawRows.filter(r => r.Drops && r.Drops !== "");
-  }
-  else {
-    filtered = rawRows.slice();
-  }
-  renderTable();
-}
-
-async function postJSON(url, payload) {
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
-  });
-  return res.json();
-}
-
-function renderTable() {
-  tbody.innerHTML = "";
-  filtered.forEach((r) => {
-    const tr = document.createElement("tr");
-    if (r["User status"] === "DOWN") tr.classList.add("offline");
-    if (r.Ticket) tr.classList.add("ticket");
-
-    const remarkVal = r.Remarks || "";
-    const teamVal   = r.Team    || "";
-    const modeVal   = r.Mode    || "Manual";
-
-    tr.innerHTML = `
-      <td>${r.PON||""}</td>
-      <td>${r.Users||""}</td>
-      <td>${r["Last called no"]||""}</td>
-      <td>${r.Name||""}</td>
-      <td>${r.MAC||""}<br><small>${r.Serial||""}</small></td>
-      <td>${r.Drops||""}</td>
-      <td><input class="remarkInput" value="${remarkVal}"></td>
-      <td>
-        <select class="teamSel">
-          <option value="">--</option>
-          <option value="Sushil">Sushil</option>
-          <option value="Team1">Team1</option>
-          <option value="Team2">Team2</option>
-        </select>
-      </td>
-      <td>
-        <select class="modeSel">
-          <option value="Manual">Manual</option>
-          <option value="Auto">Auto</option>
-        </select>
-      </td>
-      <td>${r.Power != null ? Number(r.Power).toFixed(2) : ""}</td>
-      <td>
-        <button class="mark-btn">Mark</button>
-        <button class="remove-btn">Delete</button>
-      </td>
-      <td>${r.Location||""}</td>
-      <td>${r["User status"]||""}</td>
-    `;
-
-    // Set default values for selects
-    tr.querySelector(".teamSel").value = teamVal;
-    tr.querySelector(".modeSel").value = modeVal;
-
-    // Mark button
-    tr.querySelector(".mark-btn").onclick = async () => {
-      const payload = {
-        user_id: r.Users || "",
-        name: r.Name || "",
-        address: r.Location || "",
-        reason: tr.querySelector(".remarkInput").value || "",
-        Mode: tr.querySelector(".modeSel").value || "Manual",
-        Power: r.Power,
-        Phone: r["Last called no"] || "",
-        Team: tr.querySelector(".teamSel").value || "",
-        pon: r.PON || ""
-      };
-
-      try {
-        await postJSON(API_MARK, payload);
-        showToast("✅ Complaint marked (Open)");
-      } catch {
-        showToast("❌ Failed to mark complain");
-      }
-    };
-
-    // Delete button
-    tr.querySelector(".remove-btn").onclick = async () => {
-      const payload = { /* same as above */ ...payload }; // copy
-      try {
-        await postJSON(API_DELETE, payload);
-        showToast("🗑 Complaint closed (Close)");
-      } catch {
-        showToast("❌ Failed to delete complain");
-      }
-    };
-
-    tbody.appendChild(tr);
-  });
-}
-
-// Button events
-document.getElementById("btnOffline").onclick   = () => { currentMode = "offline";   applyMode(); };
-document.getElementById("btnComplains").onclick = () => { currentMode = "complains"; applyMode(); };
-document.getElementById("btnDrops").onclick     = () => { currentMode = "drops";     applyMode(); };
-
-// Start
-fetchData();
-setInterval(fetchData, 30000);
-</script>
+<!-- Import JS -->
+<script src="script.js"></script>
 </body>
 </html>
