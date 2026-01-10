@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Complain Manager</title>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
+<link rel="stylesheet" href="../stylesoff.css">
+
+<style>
+tbody tr.offline td{background:#fff3f3;}
+tbody tr.ticket td{background:#ff5252;color:#fff;}
+#spinnerOverlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(255,255,255,.6);z-index:999;}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:10px 16px;border-radius:6px;opacity:0;}
+#toast.show{opacity:1;}
+</style>
+</head>
+
+<body>
+
+<header class="app-header">
+  <div class="brand">
+    <h1>Complain Manager</h1>
+  </div>
+  <div class="top-controls">
+    <button id="btnComplains" class="primary">Complains</button>
+    <button id="btnOffline">Offline</button>
+    <button id="btnDrops">Drops</button>
+  </div>
+</header>
+
+<div id="tableWrap">
+<table id="dataTable">
+<thead>
+<tr>
+  <th>PON</th>
+  <th>User ID</th>
+  <th>Mobile</th>
+  <th>Name</th>
+  <th>Mac / Serial</th>
+  <th>Down</th>
+  <th>Remark</th>
+  <th>Team</th>
+  <th>Mode</th>     <!-- ✅ NEW -->
+  <th>Power</th>
+  <th>Complain</th>
+  <th>Location</th>
+  <th>Status</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
+</div>
+
+<div id="spinnerOverlay">
+  <div>Loading…</div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ===============================
+   API
+================================ */
+const CLIENT = "TSN";
+const API_URL = `https://app.vbo.co.in/${CLIENT}/complains`;
+const API_MARK = `https://app.vbo.co.in/${CLIENT}/mark_complain`;
+const API_DELETE = `https://app.vbo.co.in/${CLIENT}/delete_complain`;
+
+let rawRows = [];
+let filtered = [];
+let currentMode = "offline";
+
+const tbody = document.querySelector("#dataTable tbody");
+const spinner = document.getElementById("spinnerOverlay");
+const toast = document.getElementById("toast");
+
+/* UI */
+function showSpinner(){spinner.style.display="flex";}
+function hideSpinner(){spinner.style.display="none";}
+function showToast(msg){
+  toast.textContent=msg;
+  toast.classList.add("show");
+  setTimeout(()=>toast.classList.remove("show"),3000);
+}
+
+/* DATA FETCH */
+async function fetchData(){
+  showSpinner();
+  try{
+    const res = await fetch(API_URL);
+    const data = await res.json();
+    rawRows = data.rows || [];
+    applyMode();
+  }catch(err){
+    showToast("Failed to load data");
+  }finally{
+    hideSpinner();
+  }
+}
+
+/* FILTER MODES */
+function applyMode(){
+  if(currentMode==="offline"){
+    filtered = rawRows.filter(r => r["User status"]==="DOWN");
+  }
+  else if(currentMode==="complains"){
+    filtered = rawRows.filter(r => r.Ticket && r.Ticket!=="");
+  }
+  else if(currentMode==="drops"){
+    filtered = rawRows.filter(r => r.Drops && r.Drops!=="");
+  }
+  else{
+    filtered = rawRows.slice();
+  }
+  renderTable();
+}
+
+/* POST helper */
+async function postJSON(url, payload){
+  const res = await fetch(url,{
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify(payload)
+  });
+  return res.json();
+}
+
+/* TABLE */
+function renderTable(){
+  tbody.innerHTML="";
+
+  filtered.forEach((r, idx)=>{
+    const tr=document.createElement("tr");
+
+    if(r["User status"]==="DOWN") tr.classList.add("offline");
+    if(r.Ticket) tr.classList.add("ticket");
+
+    const remarkVal = r.Remarks || "";
+    const teamVal = r.Team || "";
+    const modeVal = r.Mode || "Manual";
+
+    tr.innerHTML=`
+      <td>${r.PON||""}</td>
+      <td>${r.Users||""}</td>
+      <td>${r["Last called no"]||""}</td>
+      <td>${r.Name||""}</td>
+      <td>${r.MAC||""}<br><small>${r.Serial||""}</small></td>
+      <td>${r.Drops||""}</td>
+
+      <td>
+        <input class="remarkInput" value="${remarkVal}">
+      </td>
+
+      <td>
+        <select class="teamSel">
+          <option value="">--</option>
+          <option value="Sushil">Sushil</option>
+          <option value="Team1">Team1</option>
+          <option value="Team2">Team2</option>
+        </select>
+      </td>
+
+      <td>
+        <select class="modeSel">
+          <option value="Manual">Manual</option>
+          <option value="Auto">Auto</option>
+        </select>
+      </td>
+
+      <td>${r.Power!=null?Number(r.Power).toFixed(2):""}</td>
+
+      <td>
+        <button class="btnMark">Mark</button>
+        <button class="btnDel">Delete</button>
+      </td>
+
+      <td>${r.Location||""}</td>
+      <td>${r["User status"]||""}</td>
+    `;
+
+    // set dropdown defaults
+    tr.querySelector(".teamSel").value = teamVal;
+    tr.querySelector(".modeSel").value = modeVal;
+
+    // Events: Mark / Delete
+    tr.querySelector(".btnMark").onclick = async ()=>{
+      const payload = {
+        user_id: r.Users || "",
+        name: r.Name || "",
+        address: r.Location || "",
+        reason: tr.querySelector(".remarkInput").value || "",
+        Mode: tr.querySelector(".modeSel").value || "Manual",
+        Power: r.Power,
+        Phone: r["Last called no"] || "",
+        Team: tr.querySelector(".teamSel").value || "",
+        pon: r.PON || ""
+      };
+
+      try{
+        await postJSON(API_MARK, payload);
+        showToast("✅ Complaint marked (Open)");
+      }catch(e){
+        showToast("❌ Failed to mark complain");
+      }
+    };
+
+    tr.querySelector(".btnDel").onclick = async ()=>{
+      const payload = {
+        user_id: r.Users || "",
+        name: r.Name || "",
+        address: r.Location || "",
+        reason: tr.querySelector(".remarkInput").value || "",
+        Mode: tr.querySelector(".modeSel").value || "Manual",
+        Power: r.Power,
+        Phone: r["Last called no"] || "",
+        Team: tr.querySelector(".teamSel").value || "",
+        pon: r.PON || ""
+      };
+
+      try{
+        await postJSON(API_DELETE, payload);
+        showToast("🗑 Complaint closed (Close)");
+      }catch(e){
+        showToast("❌ Failed to delete complain");
+      }
+    };
+
+    tbody.appendChild(tr);
+  });
+}
+
+/* BUTTON EVENTS */
+document.getElementById("btnOffline").onclick=()=>{currentMode="offline";applyMode();};
+document.getElementById("btnComplains").onclick=()=>{currentMode="complains";applyMode();};
+document.getElementById("btnDrops").onclick=()=>{currentMode="drops";applyMode();};
+
+/* START */
+fetchData();
+setInterval(fetchData,30000);
+</script>
+
+</body>
+</html>
