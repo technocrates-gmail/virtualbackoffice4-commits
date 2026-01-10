@@ -1,0 +1,235 @@
+/* =============================================
+   Modern Complain Manager - stylesoff.css
+   2025–2026 style • clean • responsive
+============================================= */
+
+:root {
+  --accent:      #2b8cff;
+  --danger:      #e74c3c;
+  --bg:          #f7f8fb;
+  --surface:     #ffffff;
+  --muted:       #7f8c8d;
+  --border:      #e6e9ee;
+  --card-shadow: 0 6px 18px rgba(23,31,46,0.07);
+  --gap:         12px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: #222;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 20px;
+  background: linear-gradient(180deg, #ffffff, #fbfdff);
+  box-shadow: var(--card-shadow);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.brand h1 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+  letter-spacing: -0.2px;
+}
+
+.top-controls {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.top-controls button {
+  padding: 9px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 0.94rem;
+  cursor: pointer;
+  transition: all 0.13s;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+}
+
+.top-controls button:hover {
+  background: #f0f3f8;
+}
+
+.top-controls button:active {
+  transform: translateY(1px);
+}
+
+.top-controls .primary {
+  background: var(--accent);
+  color: white;
+  border-color: transparent;
+}
+
+/* Table container */
+#tableWrap {
+  margin: 16px 20px;
+  background: white;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: var(--card-shadow);
+}
+
+table#dataTable {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 980px;
+}
+
+thead th {
+  text-align: left;
+  padding: 12px 14px;
+  background: #e8ecff;
+  color: #1a237e;
+  font-weight: 600;
+  font-size: 0.92rem;
+  border-bottom: 1px solid #d1d9ff;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+tbody td {
+  padding: 11px 14px;
+  border-bottom: 1px solid #f0f2f7;
+  font-size: 0.94rem;
+  vertical-align: middle;
+}
+
+/* Row styles */
+tbody tr.offline td {
+  background: #fffdf6;
+}
+
+tbody tr.ticket td {
+  background: #ffebee !important;
+  color: #c62828 !important;
+}
+
+/* Inputs & Selects */
+.remarkInput,
+.teamSel,
+.modeSel {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid #d0d4e0;
+  border-radius: 6px;
+  font-size: 0.92rem;
+}
+
+.remarkInput:focus,
+.teamSel:focus,
+.modeSel:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(43,140,255,0.15);
+}
+
+/* Buttons in table */
+.mark-btn,
+.remove-btn {
+  width: 38px;
+  height: 38px;
+  border: none;
+  border-radius: 6px;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: all 0.13s;
+}
+
+.mark-btn {
+  background: #e8ecff;
+  color: #1e40af;
+}
+
+.mark-btn:hover {
+  background: #dbe4ff;
+}
+
+.remove-btn {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.remove-btn:hover {
+  background: #ffcccb;
+}
+
+/* Spinner & Toast */
+#spinnerOverlay {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 14px;
+  background: rgba(255,255,255,0.65);
+  backdrop-filter: blur(3px);
+  z-index: 9999;
+}
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 5px solid #e0e0e0;
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+#toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #2d2d2d;
+  color: white;
+  padding: 12px 20px;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+  opacity: 0;
+  transition: opacity 0.3s, transform 0.3s;
+  z-index: 9998;
+}
+
+#toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .app-header {
+    padding: 12px 16px;
+  }
+  
+  #tableWrap {
+    margin: 12px;
+  }
+  
+  table#dataTable {
+    min-width: 860px;
+  }
+}
