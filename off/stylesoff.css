@@ -1,3 +1,5 @@
+/* stylesoff.css - Updated */
+
 /* =============================================
    Modern Complain Manager - stylesoff.css
    2025–2026 style • clean • responsive
@@ -78,12 +80,34 @@ html, body {
   border-color: transparent;
 }
 
+/* Filters */
+.filters-inline {
+  display: flex;
+  gap: 10px;
+  padding: 12px 20px;
+  flex-wrap: wrap;
+}
+
+.filters-inline input {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.94rem;
+  flex: 1;
+  min-width: 120px;
+}
+
+.filters-inline input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(43,140,255,0.15);
+}
+
 /* Table container */
 #tableWrap {
-  margin: 16px 20px;
+  margin: 0 20px 20px;
   background: white;
   border-radius: 10px;
-  overflow: hidden;
+  overflow: auto;
   box-shadow: var(--card-shadow);
 }
 
@@ -104,6 +128,15 @@ thead th {
   position: sticky;
   top: 0;
   z-index: 10;
+  white-space: nowrap;
+}
+
+thead th select {
+  margin-left: 8px;
+  padding: 4px;
+  border: 1px solid #d1d9ff;
+  border-radius: 4px;
+  background: white;
 }
 
 tbody td {
@@ -152,24 +185,48 @@ tbody tr.ticket td {
   font-size: 1.1rem;
   cursor: pointer;
   transition: all 0.13s;
+  color: white;
 }
 
 .mark-btn {
-  background: #e8ecff;
-  color: #1e40af;
+  background: #4caf50;
+}
+
+.mark-btn i {
+  color: white;
 }
 
 .mark-btn:hover {
-  background: #dbe4ff;
+  background: #43a047;
 }
 
 .remove-btn {
-  background: #ffebee;
-  color: #c62828;
+  background: var(--danger);
 }
 
 .remove-btn:hover {
-  background: #ffcccb;
+  background: #d32f2f;
+}
+
+/* Status indicators */
+.status-indicator {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.status-up {
+  background: #4caf50;
+}
+
+.status-down {
+  background: var(--danger);
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  50% { opacity: 0.5; }
 }
 
 /* Spinner & Toast */
@@ -225,8 +282,12 @@ tbody tr.ticket td {
     padding: 12px 16px;
   }
   
+  .filters-inline {
+    padding: 12px 16px;
+  }
+  
   #tableWrap {
-    margin: 12px;
+    margin: 0 16px 16px;
   }
   
   table#dataTable {
