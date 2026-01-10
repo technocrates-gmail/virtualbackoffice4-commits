@@ -2,17 +2,235 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Complain Manager</title>
 
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" 
-        integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" 
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+        integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
         crossorigin="anonymous" referrerpolicy="no-referrer" />
 
-  <link rel="stylesheet" href="stylesoff.css">
-
-  <!-- html2canvas for screenshot -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+  <style>
+    :root {
+      --accent: #2b8cff;
+      --danger: #e74c3c;
+      --success: #4caf50;
+      --bg: #f7f8fb;
+      --border: #e0e4ed;
+    }
+
+    * { box-sizing: border-box; margin:0; padding:0; }
+    html, body {
+      height: 100%;
+      font-family: system-ui, sans-serif;
+      background: var(--bg);
+      color: #222;
+      overflow-x: hidden;
+    }
+
+    .app-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      background: white;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+
+    .brand h1 {
+      font-size: 1.15rem;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    .top-controls {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .top-controls button {
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: white;
+      font-size: 0.9rem;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .top-controls .primary { background: var(--accent); color: white; border: none; }
+
+    .icon-btn {
+      width: 38px;
+      height: 38px;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: white;
+      color: #555;
+    }
+
+    .filters-inline {
+      padding: 10px 12px;
+      background: #f9faff;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .filters-inline input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.95rem;
+    }
+
+    #tableWrap {
+      margin: 0 10px 10px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+
+    table {
+      width: 100%;
+      min-width: 900px;
+      border-collapse: collapse;
+    }
+
+    thead th {
+      background: #e8ecff;
+      color: #1a237e;
+      padding: 10px 8px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      text-align: left;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      white-space: nowrap;
+    }
+
+    .filter-row td {
+      background: #f5f7ff;
+      padding: 6px 8px;
+      position: sticky;
+      top: 40px;
+      z-index: 9;
+    }
+
+    .filter-row select {
+      width: 100%;
+      padding: 6px;
+      border: 1px solid #d1d9ff;
+      border-radius: 6px;
+      font-size: 0.85rem;
+    }
+
+    tbody td {
+      padding: 10px 8px;
+      font-size: 0.88rem;
+      border-bottom: 1px solid #f0f2f7;
+    }
+
+    tbody tr.offline td { background: #fffdf6; }
+    tbody tr.ticket td { background: #ffebee !important; color: #c62828 !important; }
+
+    .remarkInput, .modeSel {
+      width: 100%;
+      padding: 6px 8px;
+      border: 1px solid #d0d4e0;
+      border-radius: 6px;
+      font-size: 0.88rem;
+    }
+
+    .mark-btn, .remove-btn {
+      width: 34px;
+      height: 34px;
+      border: none;
+      border-radius: 6px;
+      color: white;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+
+    .mark-btn { background: var(--success); }
+    .remove-btn { background: var(--danger); }
+
+    .status-indicator {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-right: 6px;
+    }
+
+    .status-up { background: var(--success); }
+    .status-down { background: var(--danger); animation: blink 1.4s infinite; }
+
+    @keyframes blink { 0%,100% {opacity:1;} 50% {opacity:0.35;} }
+
+    #spinnerOverlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(255,255,255,0.85);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 5px solid #e0e0e0;
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #333;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      opacity: 0;
+      transition: opacity 0.3s;
+      z-index: 9998;
+      font-size: 0.95rem;
+    }
+
+    #toast.show { opacity: 1; }
+
+    @media (max-width: 768px) {
+      .app-header { padding: 8px 10px; }
+      .brand h1 { font-size: 1.05rem; }
+      .top-controls button { padding: 7px 10px; font-size: 0.85rem; }
+      .icon-btn { width: 36px; height: 36px; font-size: 1rem; }
+      .filters-inline { padding: 8px 10px; }
+      thead th, tbody td { font-size: 0.82rem; padding: 8px 6px; }
+      table { min-width: 850px; }
+    }
+  </style>
 </head>
 <body>
 
@@ -22,18 +240,17 @@
   </div>
   <div class="top-controls">
     <button id="btnComplains" class="primary">Complains</button>
-    <button id="btnOffline">Offline</button>
     <button id="btnDrops">Drops</button>
-    <button id="btnScreenshot" title="Take Screenshot"><i class="fas fa-camera"></i></button>
-    <button id="btnCsv" title="Download CSV"><i class="fas fa-file-csv"></i></button>
+    <button id="btnRefresh" class="icon-btn" title="Refresh"><i class="fas fa-sync-alt"></i></button>
+    <button id="btnScreenshot" class="icon-btn" title="Screenshot"><i class="fas fa-camera"></i></button>
+    <button id="btnCsv" class="icon-btn" title="CSV"><i class="fas fa-file-csv"></i></button>
   </div>
 </header>
 
-<!-- Global Search and Power Range -->
 <div class="filters-inline">
   <input id="globalSearch" placeholder="Search anything..." type="text">
-  <input id="powerMin" placeholder="Min Power" type="number" step="0.1">
-  <input id="powerMax" placeholder="Max Power" type="number" step="0.1">
+  <input id="powerMin"   placeholder="Min Power" type="number" step="0.1">
+  <input id="powerMax"   placeholder="Max Power" type="number" step="0.1">
 </div>
 
 <div id="tableWrap">
@@ -76,11 +293,287 @@
 
 <div id="spinnerOverlay">
   <div class="spinner"></div>
-  <p>Loading...</p>
+  <p>Loading users...</p>
 </div>
 
-<div id="toast" role="status" aria-live="polite"></div>
+<div id="toast"></div>
 
-<script src="script.js"></script>
+<script>
+  const API_URL    = "https://app.vbo.co.in/TSN/complains";
+  const API_MARK   = "https://app.vbo.co.in/TSN/mark_complain";
+  const API_DELETE = "https://app.vbo.co.in/TSN/delete_complain";
+
+  let rawRows = [];
+  let filtered = [];
+  let currentMode = "all"; // Start with all users
+
+  const tbody = document.querySelector("#dataTable tbody");
+  const spinner = document.getElementById("spinnerOverlay");
+  const toastEl = document.getElementById("toast");
+
+  const globalSearch = document.getElementById("globalSearch");
+  const powerMin = document.getElementById("powerMin");
+  const powerMax = document.getElementById("powerMax");
+  const filterPon = document.getElementById("filterPon");
+  const filterTeam = document.getElementById("filterTeam");
+  const filterMode = document.getElementById("filterMode");
+  const filterStatus = document.getElementById("filterStatus");
+
+  function showToast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add("show");
+    setTimeout(() => toastEl.classList.remove("show"), 2800);
+  }
+
+  function showSpinner() { spinner.style.display = "flex"; }
+  function hideSpinner() { spinner.style.display = "none"; }
+
+  async function fetchData() {
+    showSpinner();
+    try {
+      const res = await fetch(API_URL);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      rawRows = data.rows || [];
+
+      showToast(rawRows.length ? `${rawRows.length} users loaded` : "No users found");
+      populateFilters();
+      applyAllFilters();
+    } catch (err) {
+      showToast("Load failed: " + err.message);
+      console.error(err);
+    } finally {
+      hideSpinner();
+    }
+  }
+
+  function populateFilters() {
+    // PON
+    const pons = [...new Set(rawRows.map(r => r.PON || "").filter(Boolean))].sort();
+    filterPon.innerHTML = '<option value="">All PON</option>' + pons.map(p => `<option value="${p}">${p}</option>`).join('');
+
+    // Team
+    filterTeam.innerHTML = '<option value="">All Team</option><option value="Satyam">Satyam</option>';
+
+    // Mode
+    const modes = [...new Set(rawRows.map(r => r.Mode || "").filter(Boolean))].sort();
+    filterMode.innerHTML = '<option value="">All Mode</option>' + modes.map(m => `<option value="${m}">${m}</option>`).join('');
+
+    // Status - DOWN by default
+    const statuses = [...new Set(rawRows.map(r => r["User status"] || "").filter(Boolean))].sort();
+    let html = '<option value="">All Status</option>';
+    statuses.forEach(s => {
+      html += `<option value="${s}" ${s === "DOWN" ? 'selected' : ''}>${s}</option>`;
+    });
+    filterStatus.innerHTML = html;
+  }
+
+  function applyAllFilters() {
+    let data = [...rawRows];
+
+    if (currentMode === "complains") {
+      data = data.filter(r => r.Ticket && String(r.Ticket).trim());
+    } else if (currentMode === "drops") {
+      data = data.filter(r => r.Drops && String(r.Drops).trim());
+    }
+
+    const term = globalSearch.value.trim().toLowerCase();
+    if (term) {
+      data = data.filter(r => Object.values(r).some(v => String(v||'').toLowerCase().includes(term)));
+    }
+
+    const minP = parseFloat(powerMin.value);
+    const maxP = parseFloat(powerMax.value);
+    if (!isNaN(minP)) data = data.filter(r => r.Power != null && Number(r.Power) >= minP);
+    if (!isNaN(maxP)) data = data.filter(r => r.Power != null && Number(r.Power) <= maxP);
+
+    if (filterPon.value)    data = data.filter(r => r.PON === filterPon.value);
+    if (filterTeam.value)   data = data.filter(r => (r.Team || "Satyam") === filterTeam.value);
+    if (filterMode.value)   data = data.filter(r => r.Mode === filterMode.value);
+    if (filterStatus.value) data = data.filter(r => r["User status"] === filterStatus.value);
+
+    if (currentMode === "drops") {
+      data.sort((a,b) => {
+        const ta = a.Drops ? new Date(a.Drops).getTime() : 0;
+        const tb = b.Drops ? new Date(b.Drops).getTime() : 0;
+        return tb - ta;
+      });
+    }
+
+    filtered = data;
+    renderTable();
+  }
+
+  async function postJSON(url, payload) {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+  }
+
+  function renderTable() {
+    tbody.innerHTML = "";
+    if (!filtered.length) {
+      tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;padding:30px;color:#777;">No users found</td></tr>';
+      return;
+    }
+
+    filtered.forEach(r => {
+      const tr = document.createElement("tr");
+      if (r["User status"] === "DOWN") tr.classList.add("offline");
+      if (r.Ticket) tr.classList.add("ticket");
+
+      let statusHtml = '';
+      const st = r["User status"] || '';
+      if (st === "UP")   statusHtml = '<span class="status-indicator status-up"></span>';
+      if (st === "DOWN") statusHtml = '<span class="status-indicator status-down"></span>';
+
+      tr.innerHTML = `
+        <td>${r.PON || ""}</td>
+        <td>${r.Users || ""}</td>
+        <td>${r["Last called no"] || ""}</td>
+        <td>${r.Name || ""}</td>
+        <td>${r.MAC || ""}<br><small>${r.Serial || ""}</small></td>
+        <td>${r.Drops || ""}</td>
+        <td><input class="remarkInput" value="${r.Remarks || ""}"></td>
+        <td><select class="teamSel" disabled><option>Satyam</option></select></td>
+        <td>
+          <select class="modeSel">
+            <option>Manual</option>
+            <option>Auto</option>
+          </select>
+        </td>
+        <td>${r.Power != null ? Number(r.Power).toFixed(2) : ""}</td>
+        <td>
+          <button class="mark-btn"><i class="fas fa-check"></i></button>
+          <button class="remove-btn"><i class="fas fa-trash"></i></button>
+        </td>
+        <td>${r.Location || ""}</td>
+        <td>${statusHtml}</td>
+      `;
+
+      tr.querySelector(".modeSel").value = r.Mode || "Manual";
+
+      tr.querySelector(".mark-btn").onclick = async () => {
+        const payload = {
+          user_id: r.Users || "",
+          name: r.Name || "",
+          address: r.Location || "",
+          reason: tr.querySelector(".remarkInput").value || "",
+          Mode: tr.querySelector(".modeSel").value || "Manual",
+          Power: r.Power,
+          Phone: r["Last called no"] || "",
+          Team: "Satyam",
+          pon: r.PON || ""
+        };
+        try {
+          await postJSON(API_MARK, payload);
+          showToast("Marked ✓");
+          fetchData();
+        } catch {
+          showToast("Mark failed");
+        }
+      };
+
+      tr.querySelector(".remove-btn").onclick = async () => {
+        const payload = { ...payload };
+        try {
+          await postJSON(API_DELETE, payload);
+          showToast("Deleted 🗑");
+          fetchData();
+        } catch {
+          showToast("Delete failed");
+        }
+      };
+
+      tbody.appendChild(tr);
+    });
+  }
+
+  // Events
+  document.getElementById("btnComplains").onclick = () => { currentMode = "complains"; applyAllFilters(); };
+  document.getElementById("btnDrops").onclick     = () => { currentMode = "drops"; applyAllFilters(); };
+  document.getElementById("btnRefresh").onclick   = fetchData;
+
+  globalSearch.oninput = applyAllFilters;
+  powerMin.oninput = applyAllFilters;
+  powerMax.oninput = applyAllFilters;
+  filterPon.onchange = applyAllFilters;
+  filterTeam.onchange = applyAllFilters;
+  filterMode.onchange = applyAllFilters;
+  filterStatus.onchange = applyAllFilters;
+
+  // Screenshot with better mobile handling
+  document.getElementById("btnScreenshot").onclick = async () => {
+    showToast("Screenshot ban raha hai...");
+    await new Promise(r => setTimeout(r, 100)); // small delay for UI settle
+
+    const el = document.getElementById("tableWrap");
+    const origOverflow = el.style.overflow;
+    el.style.overflow = "visible";
+
+    try {
+      const canvas = await html2canvas(el, {
+        scale: window.devicePixelRatio > 1 ? 2 : 1.5,
+        useCORS: true,
+        backgroundColor: null,
+        logging: false
+      });
+
+      const link = document.createElement("a");
+      link.download = `complains-${new Date().toISOString().slice(0,16)}.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+
+      showToast("Screenshot saved!");
+    } catch (e) {
+      showToast("Screenshot fail ho gaya");
+      console.error(e);
+    } finally {
+      el.style.overflow = origOverflow;
+    }
+  };
+
+  // CSV
+  document.getElementById("btnCsv").onclick = () => {
+    if (!filtered.length) return showToast("Koi data nahi export karne ko");
+
+    const headers = ["PON","User ID","Mobile","Name","Mac","Serial","Down","Remark","Team","Mode","Power","Location","Status"];
+    const rows = filtered.map(r => [
+      r.PON || "",
+      r.Users || "",
+      r["Last called no"] || "",
+      `"${(r.Name||"").replace(/"/g,'""')}"`,
+      `"${r.MAC||""}"`,
+      `"${r.Serial||""}"`,
+      r.Drops || "",
+      `"${(r.Remarks||"").replace(/"/g,'""')}"`,
+      "Satyam",
+      r.Mode || "Manual",
+      r.Power != null ? Number(r.Power).toFixed(2) : "",
+      `"${(r.Location||"").replace(/"/g,'""')}"`,
+      r["User status"] || ""
+    ].join(","));
+
+    const csv = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csv], {type: "text/csv;charset=utf-8;"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `complains-${new Date().toISOString().slice(0,16)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    showToast("CSV download ho gaya!");
+  };
+
+  // Initial load
+  fetchData();
+</script>
 </body>
 </html>
