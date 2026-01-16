@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complain Manager</title>
+
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+
+<body>
+
+    <!-- ✅ Modal must be inside body -->
+    <div id="complaintModal" class="modalOverlay">
+        <div class="modalBox">
+            <div class="modalHead">
+                <div class="modalTitle" id="modalTitle">Complaint Details</div>
+                <button class="modalClose" id="modalCloseBtn">Close</button>
+            </div>
+            <div id="modalBody"></div>
+        </div>
+    </div>
+
+    <header>
+        <h1>
+            Complain Manager
+            <span id="userCount">(0)</span>
+        </h1>
+
+        <button class="hamburger-btn" id="menuToggle">
+            <i class="fas fa-bars"></i>
+        </button>
+
+        <nav class="top-menu" id="topMenu">
+            <select id="windowSelect">
+                <option value="ALL" selected>ALL</option>
+                <option value="TSN">TSN</option>
+                
+            </select>
+
+            <button class="nav-btn" id="btnComplains">Complains</button>
+            <button class="nav-btn" id="btnDrops">Drops</button>
+            <button class="nav-btn" id="btnRefresh">Refresh</button>
+            <button class="nav-btn" id="btnToggleView">Switch to Table</button>
+            <button class="nav-btn" id="btnCsv">Export CSV</button>
+            <button class="nav-btn" id="btnScreenshot">Screenshot</button>
+        </nav>
+    </header>
+
+    <main id="contentWrap">
+        <section class="filters">
+            <input type="text" id="globalSearch" placeholder="Search by any information .. " />
+
+<input type="text" id="powerRange" placeholder="Power range eg 26-30" />
+
+
+<div class="ponMultiWrap" id="ponMultiWrap">
+  <button type="button" class="ponMultiBtn" id="ponMultiBtn">All PON</button>
+
+  <div class="ponMultiDropdown" id="ponMultiDropdown">
+    <div class="ponMultiSearch">
+      <input type="text" id="ponMultiSearchInput" placeholder="Search PON..." />
+    </div>
+
+    <div class="ponMultiList" id="ponMultiList"></div>
+
+    <div class="ponMultiFooter">
+      <button type="button" class="ponClearBtn" id="ponClearBtn">Clear</button>
+      <button type="button" class="ponOkBtn" id="ponOkBtn">OK</button>
+    </div>
+  </div>
+</div>
+
+
+            <select id="filterTeam">
+                <option value="">All Team</option>
+                <option value="Sushil">Sushil</option>
+                <option value="Shaan">Shaan</option>
+            </select>
+
+            <select id="filterMode">
+                <option value="">All Mode</option>
+            </select>
+
+            <select id="filterStatus">
+                <option value="">All Status</option>
+            </select>
+        </section>
+
+        <div id="spinnerOverlay">
+            <div class="spinner"></div>
+        </div>
+
+        <section id="cardView" class="card-view"></section>
+
+        <section id="tableWrap" class="table-wrap">
+            <table id="dataTable">
+                <thead>
+<tr>
+  <th>Window</th>
+  <th>PON</th>
+  <th>User ID</th>
+  <th>Mobile</th>
+  <th>Name</th>
+  <th>MAC / Serial</th>
+  <th>Down</th>
+  <th>Remark</th>
+  <th>Team</th>
+  <th>Mode</th>
+  <th>Power</th>
+  <th>Actions</th>
+  <th>Location</th>
+  <th>Status</th>
+</tr>
+
+                </thead>
+                <tbody></tbody>
+            </table>
+        </section>
+
+        <div id="toast"></div>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
