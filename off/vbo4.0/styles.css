@@ -1,0 +1,786 @@
+:root {
+  --accent: #007bff; /* Professional blue */
+  --danger: #ff4d4f;
+  --success: #52c41a;
+  --bg: #f0f2f5;
+  --border: #d9d9d9;
+  --text-primary: #1f1f1f;
+  --text-secondary: #595959;
+  --shadow: 0 4px 12px rgba(0,0,0,0.08);
+  --transition: all 0.3s ease;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  background: var(--bg);
+  color: var(--text-primary);
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+  touch-action: manipulation;
+}
+
+/* ===============================
+   HEADER (match current HTML)
+================================= */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: white;
+  box-shadow: var(--shadow);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+header h1 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#userCount {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+/* ===============================
+   HAMBURGER (match current HTML)
+   (same feel as icon-btn)
+================================= */
+.hamburger-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.hamburger-btn:hover {
+  background: rgba(0, 123, 255, 0.1);
+  color: var(--accent);
+}
+
+/* ===============================
+   TOP MENU (match current HTML)
+   (same feel as top-controls)
+================================= */
+.top-menu {
+  display: none;
+  flex-direction: column;
+  position: absolute;
+  top: 56px;
+  right: 14px;
+  background: white;
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  padding: 10px;
+  gap: 6px;
+  z-index: 999;
+  width: 180px;
+  animation: fadeIn 0.3s ease;
+}
+
+.top-menu.show {
+  display: flex;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.top-menu button,
+.top-menu select {
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: white;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.top-menu select {
+  appearance: none;
+  background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 12 12"><path fill="%23595959" d="M10.293 3.293 6 7.586 1.707 3.293A1 1 0 0 0 .293 4.707l5 5a.997.997 0 0 0 1.414 0l5-5a1 1 0 1 0-1.414-1.414z"/></svg>') no-repeat right 10px center / 10px;
+}
+
+.top-menu button:hover,
+.top-menu select:hover {
+  border-color: var(--accent);
+}
+
+#btnComplains {
+  display: block;
+}
+
+/* ===============================
+   FILTERS (match current HTML)
+   using same "filters-inline" feel
+================================= */
+.filters {
+  padding: 10px 14px;
+  background: white;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.filters input,
+.filters select {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.9rem;
+  transition: var(--transition);
+  background: #fff;
+}
+
+.filters input:focus,
+.filters select:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+/* Make power min/max side-by-side like old power-filters */
+.filters #powerMin,
+.filters #powerMax {
+  width: 100%;
+}
+
+.filters input[type="number"] {
+  appearance: textfield;
+}
+
+/* Make select grid look same as select-filters */
+.filters select {
+  appearance: none;
+  background:
+    #fff
+    url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 12 12"><path fill="%23595959" d="M10.293 3.293 6 7.586 1.707 3.293A1 1 0 0 0 .293 4.707l5 5a.997.997 0 0 0 1.414 0l5-5a1 1 0 1 0-1.414-1.414z"/></svg>')
+    no-repeat right 10px center / 10px;
+}
+
+#contentWrap {
+  padding: 14px;
+}
+
+/* ===============================
+   CARD VIEW
+================================= */
+.card-view {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.complaint-card {
+  background: white;
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  padding: 12px;
+  font-size: 0.9rem;
+  transition: var(--transition), opacity 0.5s ease, transform 0.5s ease;
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.complaint-card.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.complaint-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: var(--accent);
+  font-size: 1rem;
+}
+
+.card-header span {
+  font-size: 1.1rem;
+}
+
+.card-row {
+  display: flex;
+  justify-content: space-between;
+  margin: 4px 0;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.85rem;
+}
+
+.card-row:last-child {
+  border-bottom: none;
+}
+
+.card-label {
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.card-value {
+  text-align: right;
+  max-width: 60%;
+}
+
+.remarkInput, .modeSel, .teamSel {
+  width: 100%;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  background: #fff;
+}
+
+.mark-btn, .remove-btn {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  color: white;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.mark-btn { background: var(--success); }
+.mark-btn:hover { background: #389e0d; }
+
+.remove-btn { background: var(--danger); }
+.remove-btn:hover { background: #cf1322; }
+
+/* ===============================
+   TABLE VIEW
+================================= */
+#tableWrap {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  font-size: 0.85rem;
+}
+
+thead th {
+  background: #e6f7ff;
+  color: var(--accent);
+  padding: 8px;
+  font-weight: 600;
+  text-align: left;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  white-space: nowrap;
+}
+
+tbody td {
+  padding: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+tbody tr.offline td {
+  background: #fff2f0;
+}
+
+tbody tr.ticket td {
+  background: #d40000 !important;
+  color: #fff !important;
+}
+
+tbody tr {
+  transition: background 0.2s ease;
+}
+
+tbody tr:hover {
+  background: #f5f5f5;
+}
+
+/* ===============================
+   SPINNER
+================================= */
+#spinnerOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(255,255,255,0.9);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid rgba(0, 123, 255, 0.2);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ===============================
+   TOAST
+================================= */
+#toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.85);
+  color: white;
+  padding: 10px 20px;
+  border-radius: 40px;
+  opacity: 0;
+  transition: opacity 0.3s, transform 0.3s;
+  z-index: 9998;
+  font-size: 0.9rem;
+  box-shadow: var(--shadow);
+}
+
+#toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(-8px);
+}
+
+/* ===============================
+   RESPONSIVE (same as original)
+================================= */
+@media (min-width: 768px) {
+  .filters {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    align-items: center;
+  }
+
+  /* make search full width on top */
+  #globalSearch {
+    grid-column: 1 / -1;
+  }
+
+  /* make power min/max on same row */
+  #powerMin, #powerMax {
+    width: 100%;
+  }
+
+  .card-view {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .card-view {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* ---------- Page sections for complains ---------- */
+.sectionWrap {
+  margin-bottom: 16px;
+}
+
+.sectionHead {
+  font-weight: 700;
+  padding: 10px 6px;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 10px;
+}
+
+.sectionHead .secCount {
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.sectionGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+/* ---------- Card coloring rules ---------- */
+.complaint-card.card-complain {
+  background: #f59191;   /* red */
+  color: #0c0000;
+}
+
+.complaint-card.card-complain .card-label,
+.complaint-card.card-complain .card-header {
+  color: #000 !important;
+}
+
+.complaint-card.card-offline {
+  background: #f5f5f5; /* pink */
+}
+
+.complaint-card.card-online {
+  background: #b5dabe; /* light green */
+    color: #000000;
+}
+
+/* Smooth blinking for complain open + statusUpDown UP */
+@keyframes blinkRedGreen {
+  0%   { background: #f59191; }
+  50%  { background: #b5dabe; } /* green */
+  100% { background: #f59191; }
+}
+
+.card-blink {
+  color: #000000 !important;
+  animation: blinkRedGreen 2.8s ease-in-out infinite;
+}
+
+/* Table row blink */
+.tr-blink {
+  animation: blinkRedGreen 1.8s ease-in-out infinite;
+}
+
+.tr-blink td {
+  color: #fff !important;
+}
+
+/* Popup modal */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.modalBox {
+  width: min(720px, 92vw);
+  max-height: 85vh;
+  overflow: auto;
+  background: #fff;
+  border-radius: 12px;
+  padding: 14px 16px;
+  box-shadow: 0 10px 35px rgba(0,0,0,0.25);
+}
+
+.modalHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.modalTitle {
+  font-weight: 800;
+  font-size: 16px;
+}
+
+.modalClose {
+  border: none;
+  background: #eee;
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.modalRow {
+  font-size: 13px;
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.modalRow b {
+  display: inline-block;
+  width: 120px;
+  color: #333;
+}
+
+.modalEntry {
+  border: 1px solid #eee;
+  border-radius: 10px;
+  padding: 10px;
+  margin: 10px 0;
+  background: #fafafa;
+}
+/* ✅ Fade remove animation */
+.fade-remove {
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.45s ease, transform 0.45s ease;
+}
+
+/* ✅ Table: resizable columns (remark, team, mode) */
+.resizableCol {
+  resize: horizontal;
+  overflow: auto;
+  min-width: 90px;
+  max-width: 380px;
+}
+
+.resizableInput {
+  resize: horizontal;
+  overflow: auto;
+  min-width: 120px;
+  max-width: 500px;
+}
+
+/* ✅ UP users normal green row */
+tbody tr.onlineRow td {
+  background: #d9fbe1; /* light green */
+}
+
+/* ✅ Hitech Spinner */
+.spinner {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 4px solid rgba(0, 123, 255, 0.10);
+  border-top: 4px solid var(--accent);
+  position: relative;
+  animation: spin 1s linear infinite;
+  box-shadow: 0 0 12px rgba(0,123,255,0.25);
+}
+
+.spinner::after {
+  content: "";
+  position: absolute;
+  inset: 10px;
+  border-radius: 50%;
+  border: 3px solid rgba(0, 123, 255, 0.12);
+  border-bottom-color: var(--accent);
+  animation: spin 1.4s linear infinite reverse;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+/* ✅ Multi-select PON dropdown look */
+#filterPon[multiple] {
+  height: 140px;
+  padding: 8px;
+  line-height: 1.4;
+}
+#filterPon[multiple] option {
+  padding: 6px;
+}
+/* ===============================
+   ✅ Excel/Sheets like PON multi-select
+================================= */
+.ponMultiWrap {
+  position: relative;
+  width: 100%;
+}
+
+.ponMultiBtn {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.9rem;
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+  transition: var(--transition);
+
+  /* dropdown arrow */
+  background:
+    #fff
+    url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 12 12"><path fill="%23595959" d="M10.293 3.293 6 7.586 1.707 3.293A1 1 0 0 0 .293 4.707l5 5a.997.997 0 0 0 1.414 0l5-5a1 1 0 1 0-1.414-1.414z"/></svg>')
+    no-repeat right 10px center / 10px;
+}
+
+.ponMultiBtn:hover {
+  border-color: var(--accent);
+}
+
+.ponMultiDropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  width: 100%;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  z-index: 2000;
+  display: none;
+  overflow: hidden;
+}
+
+.ponMultiDropdown.show {
+  display: block;
+}
+
+.ponMultiSearch {
+  padding: 8px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.ponMultiSearch input {
+  width: 100%;
+  padding: 9px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  outline: none;
+}
+
+.ponMultiList {
+  max-height: 210px;
+  overflow: auto;
+  padding: 6px 8px;
+}
+
+.ponItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.ponItem:hover {
+  background: rgba(0, 123, 255, 0.07);
+}
+
+.ponItem input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+}
+
+.ponItem span {
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+
+.ponMultiFooter {
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.ponClearBtn,
+.ponOkBtn {
+  flex: 1;
+  padding: 9px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.ponOkBtn {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.ponClearBtn:hover {
+  border-color: var(--accent);
+}
+.ponOkBtn:hover {
+  opacity: 0.95;
+}
+/* ===============================
+   ✅ Fix for single window (TSN)
+================================= */
+
+/* Hide Team filter dropdown - not needed for TSN */
+#filterTeam {
+  display: none;
+}
+
+/* Team column width fix */
+.teamCol, .modeCol {
+  min-width: 100px !important;
+  max-width: 150px !important;
+}
+
+/* Team select styling */
+.teamSel {
+  width: 100%;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  background: #fff;
+  appearance: none;
+  background:
+    #fff
+    url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 12 12"><path fill="%23595959" d="M10.293 3.293 6 7.586 1.707 3.293A1 1 0 0 0 .293 4.707l5 5a.997.997 0 0 0 1.414 0l5-5a1 1 0 1 0-1.414-1.414z"/></svg>')
+    no-repeat right 6px center / 10px;
+}
+
+/* Responsive adjustments */
+@media (min-width: 768px) {
+  .filters {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 8px;
+    align-items: center;
+  }
+  
+  #globalSearch {
+    grid-column: 1 / -1;
+  }
+  
+  /* Hide Team filter column in grid */
+  #filterTeam {
+    display: none;
+  }
+  
+  /* Adjust grid for 4 columns instead of 5 */
+  .filters > *:not(#globalSearch) {
+    grid-column: span 1;
+  }
+}
+
+/* Title styling */
+header h1 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
