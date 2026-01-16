@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Complain Manager</title>
+    <title>Complain Manager - TSN</title>
 
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -26,7 +26,7 @@
 
     <header>
         <h1>
-            Complain Manager
+            Complain Manager - TSN
             <span id="userCount">(0)</span>
         </h1>
 
@@ -35,12 +35,6 @@
         </button>
 
         <nav class="top-menu" id="topMenu">
-            <select id="windowSelect">
-                <option value="ALL" selected>ALL</option>
-                <option value="TSN">TSN</option>
-                
-            </select>
-
             <button class="nav-btn" id="btnComplains">Complains</button>
             <button class="nav-btn" id="btnDrops">Drops</button>
             <button class="nav-btn" id="btnRefresh">Refresh</button>
@@ -54,32 +48,24 @@
         <section class="filters">
             <input type="text" id="globalSearch" placeholder="Search by any information .. " />
 
-<input type="text" id="powerRange" placeholder="Power range eg 26-30" />
+            <input type="text" id="powerRange" placeholder="Power range eg 26-30" />
 
+            <div class="ponMultiWrap" id="ponMultiWrap">
+                <button type="button" class="ponMultiBtn" id="ponMultiBtn">All PON</button>
 
-<div class="ponMultiWrap" id="ponMultiWrap">
-  <button type="button" class="ponMultiBtn" id="ponMultiBtn">All PON</button>
+                <div class="ponMultiDropdown" id="ponMultiDropdown">
+                    <div class="ponMultiSearch">
+                        <input type="text" id="ponMultiSearchInput" placeholder="Search PON..." />
+                    </div>
 
-  <div class="ponMultiDropdown" id="ponMultiDropdown">
-    <div class="ponMultiSearch">
-      <input type="text" id="ponMultiSearchInput" placeholder="Search PON..." />
-    </div>
+                    <div class="ponMultiList" id="ponMultiList"></div>
 
-    <div class="ponMultiList" id="ponMultiList"></div>
-
-    <div class="ponMultiFooter">
-      <button type="button" class="ponClearBtn" id="ponClearBtn">Clear</button>
-      <button type="button" class="ponOkBtn" id="ponOkBtn">OK</button>
-    </div>
-  </div>
-</div>
-
-
-            <select id="filterTeam">
-                <option value="">All Team</option>
-                <option value="Sushil">Sushil</option>
-                <option value="Shaan">Shaan</option>
-            </select>
+                    <div class="ponMultiFooter">
+                        <button type="button" class="ponClearBtn" id="ponClearBtn">Clear</button>
+                        <button type="button" class="ponOkBtn" id="ponOkBtn">OK</button>
+                    </div>
+                </div>
+            </div>
 
             <select id="filterMode">
                 <option value="">All Mode</option>
@@ -99,23 +85,21 @@
         <section id="tableWrap" class="table-wrap">
             <table id="dataTable">
                 <thead>
-<tr>
-  <th>Window</th>
-  <th>PON</th>
-  <th>User ID</th>
-  <th>Mobile</th>
-  <th>Name</th>
-  <th>MAC / Serial</th>
-  <th>Down</th>
-  <th>Remark</th>
-  <th>Team</th>
-  <th>Mode</th>
-  <th>Power</th>
-  <th>Actions</th>
-  <th>Location</th>
-  <th>Status</th>
-</tr>
-
+                    <tr>
+                        <th>PON</th>
+                        <th>User ID</th>
+                        <th>Mobile</th>
+                        <th>Name</th>
+                        <th>MAC / Serial</th>
+                        <th>Down</th>
+                        <th>Remark</th>
+                        <th>Team</th>
+                        <th>Mode</th>
+                        <th>Power</th>
+                        <th>Actions</th>
+                        <th>Location</th>
+                        <th>Status</th>
+                    </tr>
                 </thead>
                 <tbody></tbody>
             </table>
