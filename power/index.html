@@ -1,1 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
 
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Power Variance Analysis</title>
+
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+
+<body>
+
+    <!-- Modal - User Details -->
+    <div id="complaintModal" class="modalOverlay">
+        <div class="modalBox">
+            <div class="modalHead">
+                <div class="modalTitle" id="modalTitle">Details</div>
+                <button class="modalClose" id="btnPopupScreenshot">Screenshot</button>
+                <button class="modalClose" id="modalCloseBtn">X</button>
+            </div>
+            <div id="modalBody"></div>
+        </div>
+    </div>
+
+    <!-- Day Selection Modal -->
+    <div id="daySelectionModal" class="modalOverlay">
+        <div class="modalBox">
+            <div class="modalHead">
+                <div class="modalTitle">Select Days for Power Analysis</div>
+                <button class="modalClose" id="dayModalCloseBtn">Close</button>
+            </div>
+            <div class="modalBody">
+                <div style="padding:20px;">
+                    <p style="font-weight:800; margin-bottom:15px;">Select number of previous days to compare with current power:</p>
+                    <div class="day-options">
+                        <button class="day-option" data-days="2">2 Days</button>
+                        <button class="day-option" data-days="3">3 Days</button>
+                        <button class="day-option" data-days="4">4 Days</button>
+                        <button class="day-option" data-days="5">5 Days</button>
+                        <button class="day-option" data-days="6">6 Days</button>
+                        <button class="day-option" data-days="7">7 Days</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Event Selection Modal -->
+    <div id="eventSelectionModal" class="modalOverlay">
+        <div class="modalBox">
+            <div class="modalHead">
+                <div class="modalTitle">Select Events for Power Analysis</div>
+                <button class="modalClose" id="eventModalCloseBtn">Close</button>
+            </div>
+            <div class="modalBody">
+                <div style="padding:20px;">
+                    <p style="font-weight:800; margin-bottom:15px;">Select number of previous events to compare with current power:</p>
+                    <div class="day-options">
+                        <button class="event-option" data-events="1">1 Event</button>
+                        <button class="event-option" data-events="2">2 Events</button>
+                        <button class="event-option" data-events="3">3 Events</button>
+                        <button class="event-option" data-events="4">4 Events</button>
+                        <button class="event-option" data-events="5">5 Events</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <header>
+        <div class="headerTop">
+            <h1>
+                Power Variance Analysis
+                <span id="userCount">(0)</span>
+            </h1>
+
+            <button class="hamburger-btn" id="menuToggle" aria-label="Menu">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+
+        <nav class="top-menu" id="topMenu">
+            <div class="menuRow">
+                <select id="windowSelect">
+                    <option value="ALL" selected>ALL WINDOWS</option>
+                    
+                    <option value="TSN">TSN</option>
+
+                </select>
+
+                <button class="nav-btn" id="btnPowerHistory"><i class="fa-solid fa-chart-line"></i> Power</button>
+                <button class="nav-btn" id="btnEventHistory"><i class="fa-solid fa-bolt"></i> Event</button>
+                <button class="nav-btn" id="btnDayWise"><i class="fa-solid fa-calendar-day"></i> Day wise</button>
+                <button class="nav-btn" id="btnEventWise"><i class="fa-solid fa-calendar-week"></i> Event wise</button>
+
+                <button class="nav-btn" id="btnToggleView">
+                    <i class="fa-solid fa-table"></i> Table
+                </button>
+            </div>
+
+            <div class="menuRow">
+                <button class="nav-btn ghost" id="btnRefresh"><i class="fa-solid fa-rotate"></i> Refresh</button>
+                <button class="nav-btn ghost" id="btnCsv"><i class="fa-solid fa-file-csv"></i> CSV</button>
+                <button class="nav-btn ghost" id="btnScreenshot"><i class="fa-solid fa-camera"></i> Screenshot</button>
+            </div>
+        </nav>
+    </header>
+
+    <main id="contentWrap">
+
+        <!-- Power Filters -->
+        <section class="filters" id="filtersPower">
+            <input type="text" id="powerGapSearch" placeholder="Search power gap in dBm, use + - power gap" />
+            <input type="text" id="powerKeywordSearch" placeholder="Search power history by any keyword" />
+        </section>
+
+        <!-- Event Filters -->
+        <section class="filters" id="filtersEvent" style="display:none;">
+            <input type="text" id="eventKeywordSearch" placeholder="Search event history by any keyword" />
+        </section>
+
+        <!-- Day Wise Filters -->
+        <section class="filters" id="filtersDay" style="display:none;">
+            <input type="text" id="dayKeywordSearch" placeholder="Search users for day-wise analysis" />
+        </section>
+
+        <!-- Event Wise Filters -->
+        <section class="filters" id="filtersEventWise" style="display:none;">
+            <input type="text" id="eventWiseKeywordSearch" placeholder="Search users for event-wise analysis" />
+        </section>
+
+        <!-- ✅ Complain Manager Style PON Filter -->
+        <section class="filters" id="filtersPon">
+            <div class="ponMultiWrap" id="ponMultiWrap">
+                <button type="button" class="ponMultiBtn" id="ponMultiBtn">
+                    <i class="fa-solid fa-filter"></i> All PON
+                </button>
+
+                <div class="ponMultiDropdown" id="ponMultiDropdown">
+                    <div class="ponMultiSearch">
+                        <input type="text" id="ponMultiSearchInput" placeholder="Search PONs..." />
+                    </div>
+
+                    <div class="ponMultiList" id="ponMultiList">
+                        <!-- PON checkboxes will be inserted here -->
+                    </div>
+
+                    <div class="ponMultiFooter">
+                        <button type="button" class="ponClearBtn" id="ponClearBtn">Clear</button>
+                        <button type="button" class="ponOkBtn" id="ponOkBtn">OK</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div id="spinnerOverlay">
+            <div class="spinner"></div>
+        </div>
+
+        <!-- Cards View -->
+        <section id="cardView" class="card-view"></section>
+
+        <!-- Table View -->
+        <section id="tableWrap" class="table-wrap" style="display:none;">
+            <table id="dataTable">
+                <thead>
+                    <tr>
+                        <th>Window</th>
+                        <th>User ID</th>
+                        <th>Name</th>
+                        <th>MAC</th>
+                        <th>PON</th>
+                        <th>Status</th>
+                        <th id="thMode">Variance / Last Event</th>
+                        <th>Last Updated</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </section>
+
+        <div id="toast"></div>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
