@@ -3,39 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rack Dashboard | Network Monitoring</title>
-    
-    <!-- Fonts & Icons -->
+    <title>Rack Dashboard | TSN Monitoring</title>  <!-- Title changed -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    
-    <!-- CSS -->
     <link rel="stylesheet" href="styles.css">
-    
-    <!-- HTML2Canvas for Screenshots -->
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 </head>
 <body>
-    <!-- Loading Overlay -->
     <div id="loadingOverlay" class="loading-overlay">
         <div class="spinner-container">
             <div class="spinner"></div>
             <p>Initializing Rack ...</p>
-            <div class="loading-details" id="loadingDetails">Connecting to TSN...</div>
+            <div class="loading-details" id="loadingDetails">Connecting to TSN...</div>  <!-- Changed MEROTRA to TSN -->
         </div>
     </div>
-
-    <!-- Loading Progress Bar -->
     <div id="dataLoading" class="data-loading"></div>
-
-    <!-- Header -->
+    <button id="mobileMenuToggle" class="mobile-menu-toggle" aria-label="Open menu">
+        <i class="fas fa-bars"></i>
+    </button>
     <header class="dashboard-header">
         <div class="header-left">
             <div class="logo">
                 <i class="fas fa-satellite-dish"></i>
                 <div>
                     <h1>Rack</h1>
-                    <div class="subtitle">TSN Window</div>
+                    <div class="subtitle">TSN Monitoring</div>  <!-- Changed -->
                 </div>
             </div>
             <div class="sync-info">
@@ -44,11 +36,10 @@
                     <span>Last Sync:</span>
                     <span id="lastSyncTime" class="sync-time">--:--</span>
                 </div>
-                <div class="window-info">
-                    <div class="window-badge">
+                <div class="window-selector-container">
+                    <div class="window-selector">
                         <i class="fas fa-window-maximize"></i>
-                        <span>TSN</span>
-                        <span id="oltCount" class="olt-count">0 OLTs</span>
+                        <select id="windowSelector" class="window-dropdown"></select>
                     </div>
                     <button id="btnRefresh" class="btn-refresh" title="Refresh Data">
                         <i class="fas fa-sync-alt"></i>
@@ -56,48 +47,118 @@
                 </div>
             </div>
         </div>
-        
         <div class="header-right">
             <div class="total-stats">
                 <div class="stat-box">
-                    <div class="stat-icon">
-                        <i class="fas fa-users"></i>
-                    </div>
+                    <div class="stat-icon"><i class="fas fa-users"></i></div>
                     <div class="stat-content">
-                        <span class="stat-label">Total Users</span>
+                        <span class="stat-label">Active Users</span>
                         <span class="stat-value" id="totalUsers">0</span>
                     </div>
                 </div>
                 <div class="stat-box offline">
-                    <div class="stat-icon">
-                        <i class="fas fa-wifi-slash"></i>
-                    </div>
+                    <div class="stat-icon"><i class="fas fa-wifi-slash"></i></div>
                     <div class="stat-content">
                         <span class="stat-label">Offline</span>
                         <span class="stat-value" id="totalOffline">0</span>
                     </div>
                 </div>
                 <div class="stat-box ticket">
-                    <div class="stat-icon">
-                        <i class="fas fa-ticket-alt"></i>
-                    </div>
+                    <div class="stat-icon"><i class="fas fa-ticket-alt"></i></div>
                     <div class="stat-content">
                         <span class="stat-label">Tickets</span>
                         <span class="stat-value" id="totalTickets">0</span>
                     </div>
                 </div>
+                <div class="stat-box olt">
+                    <div class="stat-icon"><i class="fas fa-server"></i></div>
+                    <div class="stat-content">
+                        <span class="stat-label">OLTs</span>
+                        <span class="stat-value" id="oltCount">0</span>
+                    </div>
+                </div>
             </div>
         </div>
     </header>
-
-    <!-- Main Dashboard -->
-    <main class="dashboard-container">
-        <!-- OLT Cards Container -->
-        <div id="oltContainer" class="olt-container">
-            <!-- OLT cards will be dynamically generated from data -->
+    <div id="mobileSidebar" class="mobile-sidebar">
+        <div class="mobile-sidebar-header">
+            <div class="mobile-logo">
+                <i class="fas fa-satellite-dish"></i>
+                <div>
+                    <h2>Rack</h2>
+                    <div class="subtitle">TSN Monitoring</div>  <!-- Changed -->
+                </div>
+            </div>
+            <button id="mobileSidebarClose" class="mobile-sidebar-close">
+                <i class="fas fa-times"></i>
+            </button>
         </div>
-
-        <!-- Mobile Floating Actions -->
+        <div class="mobile-sidebar-content">
+            <div class="mobile-menu-section">
+                <h3><i class="fas fa-window-maximize"></i> Select Window</h3>
+                <select id="mobileWindowSelector" class="mobile-window-dropdown"></select>
+            </div>
+            <div class="mobile-menu-section">
+                <h3><i class="fas fa-chart-bar"></i> Dashboard Stats</h3>
+                <div class="mobile-stats">
+                    <div class="mobile-stat-item">
+                        <i class="fas fa-users"></i>
+                        <div>
+                            <span class="mobile-stat-label">Active Users</span>
+                            <span class="mobile-stat-value" id="mobileTotalUsers">0</span>
+                        </div>
+                    </div>
+                    <div class="mobile-stat-item offline">
+                        <i class="fas fa-wifi-slash"></i>
+                        <div>
+                            <span class="mobile-stat-label">Offline</span>
+                            <span class="mobile-stat-value" id="mobileTotalOffline">0</span>
+                        </div>
+                    </div>
+                    <div class="mobile-stat-item ticket">
+                        <i class="fas fa-ticket-alt"></i>
+                        <div>
+                            <span class="mobile-stat-label">Tickets</span>
+                            <span class="mobile-stat-value" id="mobileTotalTickets">0</span>
+                        </div>
+                    </div>
+                    <div class="mobile-stat-item olt">
+                        <i class="fas fa-server"></i>
+                        <div>
+                            <span class="mobile-stat-label">OLTs</span>
+                            <span class="mobile-stat-value" id="mobileOltCount">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="mobile-menu-section">
+                <h3><i class="fas fa-cogs"></i> Actions</h3>
+                <div class="mobile-actions-list">
+                    <button id="mobileBtnRefresh" class="mobile-action-btn">
+                        <i class="fas fa-sync-alt"></i>
+                        <span>Refresh Data</span>
+                    </button>
+                    <button id="mobileBtnScreenshot" class="mobile-action-btn">
+                        <i class="fas fa-camera"></i>
+                        <span>Take Screenshot</span>
+                    </button>
+                    <button id="mobileBtnFullscreen" class="mobile-action-btn">
+                        <i class="fas fa-expand"></i>
+                        <span>Fullscreen</span>
+                    </button>
+                </div>
+            </div>
+            <div class="mobile-menu-section">
+                <h3><i class="fas fa-clock"></i> Last Sync</h3>
+                <div class="mobile-sync-info">
+                    <div id="mobileLastSyncTime">--:--</div>
+                    <div class="mobile-sync-status"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <main class="dashboard-container">
+        <div id="oltContainer" class="olt-container"></div>
         <div class="mobile-actions">
             <button id="btnQuickRefresh" class="fab" title="Refresh">
                 <i class="fas fa-sync-alt"></i>
@@ -107,8 +168,6 @@
             </button>
         </div>
     </main>
-
-    <!-- User Details Modal -->
     <div id="userModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -125,13 +184,8 @@
                     </button>
                 </div>
             </div>
-            
             <div class="modal-subtitle" id="modalSubtitle"></div>
-            
-            <div class="modal-body" id="modalBody">
-                <!-- User details table will be inserted here -->
-            </div>
-            
+            <div class="modal-body" id="modalBody"></div>
             <div class="modal-footer">
                 <div class="pagination-info">
                     <i class="fas fa-users"></i>
@@ -144,11 +198,7 @@
             </div>
         </div>
     </div>
-
-    <!-- Toast Notification -->
     <div id="toast" class="toast"></div>
-
-    <!-- JavaScript -->
-    <script src="script.js"></script>
+    <script src="script.js" defer></script>
 </body>
 </html>

@@ -1,19 +1,20 @@
-// ===============================
 // Production Grade Configuration
-// ===============================
 const CONFIG = {
     API_BASE_URL: 'https://app.vbo.co.in',
-    CURRENT_WINDOW: 'TSN',
-    REFRESH_INTERVAL: 30000,
+    CURRENT_WINDOW: 'TSN',  // Changed from 'ALL' to 'TSN'
+    REFRESH_INTERVAL: 90000,
     SCREENSHOT_QUALITY: 2,
     MIN_DROPS_THRESHOLD: 3,
     MAX_PONS_PER_OLT: 16,
-    PON_PATTERN: /^([A-Z0-9]+)P(\d+)$/i
+    PON_PATTERN: /^([A-Z0-9]+)P(\d+)$/i,
+    WINDOWS: {
+        'TSN': 'TSN'  // Only TSN window
+    },
+    API_ENDPOINTS: {
+        'TSN': 'TSN/complains'  // TSN folder path
+    }
 };
 
-// ===============================
-// State Management
-// ===============================
 const state = {
     isLoading: false,
     isRefreshing: false,
@@ -24,12 +25,13 @@ const state = {
     modalType: 'all',
     refreshIntervalId: null,
     discoveredOLTs: new Set(),
-    totalStats: { users: 0, offline: 0, tickets: 0 }
+    totalStats: { users: 0, offline: 0, tickets: 0 },
+    currentOltName: '',
+    currentPonNumber: '',
+    allWindowsData: {},
+    activeWindows: []
 };
 
-// ===============================
-// DOM Elements
-// ===============================
 const elements = {
     loadingOverlay: document.getElementById('loadingOverlay'),
     loadingDetails: document.getElementById('loadingDetails'),
@@ -52,1287 +54,801 @@ const elements = {
     btnCloseModal: document.getElementById('btnCloseModal'),
     btnQuickRefresh: document.getElementById('btnQuickRefresh'),
     btnScreenshot: document.getElementById('btnScreenshot'),
-    toast: document.getElementById('toast')
+    toast: document.getElementById('toast'),
+    windowSelector: document.getElementById('windowSelector'),
+    mobileTotalUsers: document.getElementById('mobileTotalUsers'),
+    mobileTotalOffline: document.getElementById('mobileTotalOffline'),
+    mobileTotalTickets: document.getElementById('mobileTotalTickets'),
+    mobileOltCount: document.getElementById('mobileOltCount'),
+    mobileLastSyncTime: document.getElementById('mobileLastSyncTime'),
+    mobileWindowSelector: document.getElementById('mobileWindowSelector')
 };
 
-// ===============================
-// Core Utility Functions
-// ===============================
 const utils = {
     formatDateTime(date) {
         if (!date) return '--:--';
-        try {
-            const now = new Date();
-            const syncDate = new Date(date);
-            const diffMs = now - syncDate;
-            const diffMins = Math.floor(diffMs / 60000);
-            
-            if (diffMins < 1) return 'Just now';
-            if (diffMins < 60) return `${diffMins}m ago`;
-            if (diffMins < 1440) return `${Math.floor(diffMins / 60)}h ago`;
-            
-            return syncDate.toLocaleString('en-IN', {
-                day: '2-digit',
-                month: 'short',
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: false
-            });
-        } catch (error) {
-            console.error('Date formatting error:', error);
-            return '--:--';
-        }
+        const now = new Date();
+        const syncDate = new Date(date);
+        const diffMs = now - syncDate;
+        const diffMins = Math.floor(diffMs / 60000);
+        if (diffMins < 1) return 'Just now';
+        if (diffMins < 60) return `${diffMins}m ago`;
+        if (diffMins < 1440) return `${Math.floor(diffMins / 60)}h ago`;
+        return syncDate.toLocaleString('en-IN', {
+            day: '2-digit',
+            month: 'short',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        });
     },
-
     formatTime(date) {
         if (!date) return '--:--';
-        try {
-            return new Date(date).toLocaleTimeString('en-IN', {
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: false
-            });
-        } catch (error) {
-            return '--:--';
-        }
+        return new Date(date).toLocaleTimeString('en-IN', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        });
     },
-
     showToast(message, type = 'info', duration = 3000) {
-        try {
-            elements.toast.textContent = message;
-            elements.toast.className = `toast ${type}`;
-            elements.toast.classList.add('show');
-            
-            setTimeout(() => {
-                elements.toast.classList.remove('show');
-            }, duration);
-        } catch (error) {
-            console.error('Toast error:', error);
-        }
+        elements.toast.textContent = message;
+        elements.toast.className = `toast ${type}`;
+        elements.toast.classList.add('show');
+        setTimeout(() => elements.toast.classList.remove('show'), duration);
     },
-
     updateLoading(show, message = 'Loading rack data...') {
-        try {
-            state.isLoading = show;
-            
-            if (show) {
-                elements.loadingDetails.textContent = message;
-                elements.loadingOverlay.style.display = 'flex';
-                if (elements.dataLoading) {
-                    elements.dataLoading.classList.add('active');
-                }
-            } else {
-                elements.loadingOverlay.style.display = 'none';
-                if (elements.dataLoading) {
-                    elements.dataLoading.classList.remove('active');
-                }
-            }
-        } catch (error) {
-            console.error('Loading update error:', error);
+        state.isLoading = show;
+        if (show) {
+            elements.loadingDetails.textContent = message;
+            elements.loadingOverlay.style.display = 'flex';
+            elements.dataLoading?.classList.add('active');
+        } else {
+            elements.loadingOverlay.style.display = 'none';
+            elements.dataLoading?.classList.remove('active');
         }
     },
-
     showRefreshing(show) {
-        try {
-            state.isRefreshing = show;
-            if (elements.btnRefresh) {
-                elements.btnRefresh.classList.toggle('refreshing', show);
-            }
-        } catch (error) {
-            console.error('Refreshing state error:', error);
-        }
+        state.isRefreshing = show;
+        elements.btnRefresh?.classList.toggle('refreshing', show);
     },
-
     animateCounter(element, target) {
-        try {
-            const current = parseInt(element.textContent) || 0;
-            if (current === target) return;
-            
-            const duration = 500;
-            const steps = 20;
-            const increment = (target - current) / steps;
-            let step = 0;
-            
-            const timer = setInterval(() => {
-                step++;
-                const value = Math.round(current + (increment * step));
-                if (element) {
-                    element.textContent = value;
-                }
-                
-                if (step >= steps) {
-                    if (element) {
-                        element.textContent = target;
-                    }
-                    clearInterval(timer);
-                }
-            }, duration / steps);
-        } catch (error) {
-            console.error('Counter animation error:', error);
-        }
-    },
-
-    parsePON(ponString) {
-        try {
-            if (!ponString || typeof ponString !== 'string') return null;
-            
-            const match = ponString.trim().match(CONFIG.PON_PATTERN);
-            if (!match) return null;
-            
-            const olt = match[1].toUpperCase();
-            const ponNumber = parseInt(match[2], 10);
-            
-            if (isNaN(ponNumber) || ponNumber < 1 || ponNumber > CONFIG.MAX_PONS_PER_OLT) {
-                return null;
+        if (!element) return;
+        const current = parseInt(element.textContent) || 0;
+        if (current === target) return;
+        const duration = 500;
+        const steps = 20;
+        const increment = (target - current) / steps;
+        let step = 0;
+        const timer = setInterval(() => {
+            step++;
+            element.textContent = Math.round(current + (increment * step));
+            if (step >= steps) {
+                element.textContent = target;
+                clearInterval(timer);
             }
-            
-            return { olt, ponNumber };
-        } catch (error) {
-            console.error('PON parsing error:', error);
-            return null;
-        }
+        }, duration / steps);
     },
-
-    normalizeData(user) {
-        try {
-            return {
-                id: user.Users || user.user_id || '',
-                name: user.Name || '',
-                phone: user['Last called no'] || user.Number || '',
-                power: user.Power ? Number(user.Power) : null,
-                location: user.Location || '',
-                status: user['User status'] || '',
-                ticket: user.Ticket || '',
-                drops: user.Drops || '',
-                pon: user.PON || '',
-                address: user.address || '',
-                mac: user.MAC || ''
-            };
-        } catch (error) {
-            console.error('Data normalization error:', error);
-            return null;
-        }
+    parsePON(ponString) {
+        if (!ponString || typeof ponString !== 'string') return null;
+        const match = ponString.trim().match(CONFIG.PON_PATTERN);
+        if (!match) return null;
+        const olt = match[1].toUpperCase();
+        const ponNumber = parseInt(match[2], 10);
+        if (isNaN(ponNumber) || ponNumber < 1 || ponNumber > CONFIG.MAX_PONS_PER_OLT) return null;
+        return { olt, ponNumber };
     },
-
+    normalizeData(user, windowName = '') {
+        return {
+            id: user.Users || user.user_id || '',
+            name: user.Name || '',
+            phone: user['Last called no'] || user.Number || '',
+            power: user.Power ? Number(user.Power) : null,
+            location: user.Location || '',
+            status: user['User status'] || '',
+            ticket: user.Ticket || '',
+            drops: user.Drops || '',
+            pon: user.PON || '',
+            address: user.address || '',
+            mac: user.MAC || '',
+            window: windowName || CONFIG.CURRENT_WINDOW
+        };
+    },
     debounce(func, wait) {
         let timeout;
-        return function executedFunction(...args) {
-            const later = () => {
-                clearTimeout(timeout);
-                func(...args);
-            };
+        return (...args) => {
             clearTimeout(timeout);
-            timeout = setTimeout(later, wait);
+            timeout = setTimeout(() => func(...args), wait);
         };
+    },
+    generateOLTKey(oltName, windowName) {
+        return `${windowName}_${oltName}`;
+    },
+    parseOLTKey(key) {
+        const parts = key.split('_');
+        if (parts.length >= 2) {
+            return { windowName: parts[0], oltName: parts.slice(1).join('_') };
+        }
+        return { windowName: 'UNKNOWN', oltName: key };
     }
 };
 
-// ===============================
-// API Service
-// ===============================
 const apiService = {
-    async fetchComplaintsData(silent = false) {
-        const url = `${CONFIG.API_BASE_URL}/${CONFIG.CURRENT_WINDOW}/complains`;
-        
-        if (!silent) {
-            utils.updateLoading(true, 'Fetching rack data from TSN...');
-        }
-        
+    async fetchWindowData(windowName) {
+        if (!CONFIG.API_ENDPOINTS[windowName]) return [];
+        const url = `${CONFIG.API_BASE_URL}/${CONFIG.API_ENDPOINTS[windowName]}`;
         try {
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 30000);
-            
+            setTimeout(() => controller.abort(), 15000);
             const response = await fetch(url, {
-                headers: {
-                    'Accept': 'application/json',
-                    'Cache-Control': 'no-cache',
-                    'Pragma': 'no-cache'
-                },
+                headers: { 'Accept': 'application/json', 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' },
                 signal: controller.signal
             });
-            
-            clearTimeout(timeoutId);
-            
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-            
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
             const data = await response.json();
-            
-            if (data.runtime_timestamp) {
-                state.lastSyncTime = data.runtime_timestamp;
-                elements.lastSyncTime.textContent = utils.formatDateTime(state.lastSyncTime);
-                elements.lastSyncTime.title = `Last updated: ${new Date(state.lastSyncTime).toLocaleString()}`;
-            }
-            
-            return Array.isArray(data.rows) ? data.rows : [];
-            
+            return {
+                window: windowName,
+                data: Array.isArray(data.rows) ? data.rows : [],
+                timestamp: data.runtime_timestamp || new Date().toISOString()
+            };
         } catch (error) {
-            console.error('API Fetch Error:', error);
-            if (!silent) {
-                if (error.name === 'AbortError') {
-                    utils.showToast('Request timeout. Please check network.', 'error');
+            console.error(`API Fetch Error for ${windowName}:`, error);
+            return { window: windowName, data: [], timestamp: new Date().toISOString(), error: error.message };
+        }
+    },
+    async fetchAllWindowsData(silent = false) {
+        if (!silent) utils.updateLoading(true, `Fetching data from all windows...`);
+        try {
+            const windowNames = Object.keys(CONFIG.API_ENDPOINTS);
+            const promises = windowNames.map(w => this.fetchWindowData(w));
+            const results = await Promise.allSettled(promises);
+            const successfulWindows = [];
+            const allUsers = [];
+            results.forEach((result, index) => {
+                const windowName = windowNames[index];
+                if (result.status === 'fulfilled' && result.value.data.length > 0) {
+                    successfulWindows.push(windowName);
+                    const windowUsers = result.value.data.map(user => utils.normalizeData(user, windowName));
+                    allUsers.push(...windowUsers);
+                    state.allWindowsData[windowName] = {
+                        users: windowUsers,
+                        timestamp: result.value.timestamp,
+                        count: windowUsers.length
+                    };
                 } else {
-                    utils.showToast('Failed to fetch rack data', 'error');
+                    state.allWindowsData[windowName] = { users: [], timestamp: new Date().toISOString(), count: 0 };
                 }
+            });
+            state.activeWindows = successfulWindows;
+            if (!silent) {
+                utils.showToast(`Loaded ${successfulWindows.length} windows`, successfulWindows.length ? 'success' : 'error');
             }
+            return allUsers;
+        } catch (error) {
+            if (!silent) utils.showToast('Failed to fetch some data', 'error');
+            return [];
+        } finally {
+            if (!silent) utils.updateLoading(false);
+        }
+    },
+    async fetchSingleWindowData(windowName, silent = false) {
+        if (!silent) utils.updateLoading(true, `Fetching data from ${CONFIG.WINDOWS[windowName] || windowName}...`);
+        try {
+            const result = await this.fetchWindowData(windowName);
+            if (result.error) throw new Error(result.error);
+            state.activeWindows = [windowName];
+            state.allWindowsData[windowName] = {
+                users: result.data.map(user => utils.normalizeData(user, windowName)),
+                timestamp: result.timestamp,
+                count: result.data.length
+            };
+            return state.allWindowsData[windowName].users;
+        } catch (error) {
+            if (!silent) utils.showToast(`Failed to fetch ${windowName} data`, 'error');
             throw error;
         } finally {
-            if (!silent) {
-                utils.updateLoading(false);
-            }
+            if (!silent) utils.updateLoading(false);
         }
+    },
+    async fetchComplaintsData(silent = false) {
+        return CONFIG.CURRENT_WINDOW === 'ALL' 
+            ? this.fetchAllWindowsData(silent) 
+            : this.fetchSingleWindowData(CONFIG.CURRENT_WINDOW, silent);
     }
 };
 
-// ===============================
-// Data Processor - Dynamic OLT Detection
-// ===============================
 const dataProcessor = {
     processOLTData(users) {
-        try {
-            const oltData = {};
-            const stats = { users: 0, offline: 0, tickets: 0 };
-            const discoveredOLTs = new Set();
-            
-            state.oltData = {};
-            state.discoveredOLTs.clear();
-            
-            users.forEach(user => {
-                const normalizedUser = utils.normalizeData(user);
-                if (!normalizedUser || !normalizedUser.pon) return;
-                
-                const ponInfo = utils.parsePON(normalizedUser.pon);
-                if (!ponInfo) return;
-                
-                const { olt, ponNumber } = ponInfo;
-                discoveredOLTs.add(olt);
-                
-                if (!oltData[olt]) {
-                    oltData[olt] = {
-                        name: olt,
-                        total: 0,
-                        offline: 0,
-                        tickets: 0,
-                        pons: {}
-                    };
-                    
-                    for (let i = 1; i <= CONFIG.MAX_PONS_PER_OLT; i++) {
-                        oltData[olt].pons[i] = {
-                            users: [],
-                            offline: [],
-                            tickets: [],
-                            drops: 0,
-                            hasProblems: false
-                        };
-                    }
+        const oltData = {};
+        const stats = { users: 0, offline: 0, tickets: 0 };
+        const discoveredOLTs = new Set();
+
+        users.forEach(user => {
+            if (!user?.pon) return;
+            const ponInfo = utils.parsePON(user.pon);
+            if (!ponInfo) return;
+            const { olt, ponNumber } = ponInfo;
+            const oltKey = utils.generateOLTKey(olt, user.window);
+            discoveredOLTs.add(oltKey);
+
+            if (!oltData[oltKey]) {
+                const { windowName, oltName } = utils.parseOLTKey(oltKey);
+                oltData[oltKey] = {
+                    key: oltKey,
+                    name: oltName,
+                    window: windowName,
+                    displayName: `${oltName} (${CONFIG.WINDOWS[windowName] || windowName})`,
+                    total: 0,
+                    offline: 0,
+                    tickets: 0,
+                    pons: {}
+                };
+                for (let i = 1; i <= CONFIG.MAX_PONS_PER_OLT; i++) {
+                    oltData[oltKey].pons[i] = { number: i, users: [], offline: [], tickets: [], drops: 0, hasProblems: false };
                 }
-            });
-            
-            users.forEach(user => {
-                const normalizedUser = utils.normalizeData(user);
-                if (!normalizedUser || !normalizedUser.pon) return;
-                
-                const ponInfo = utils.parsePON(normalizedUser.pon);
-                if (!ponInfo) return;
-                
-                const { olt, ponNumber } = ponInfo;
-                const oltObj = oltData[olt];
-                const ponObj = oltObj.pons[ponNumber];
-                
-                if (!oltObj || !ponObj) return;
-                
-                oltObj.total++;
-                stats.users++;
-                ponObj.users.push(normalizedUser);
-                
-                const isOffline = normalizedUser.status === 'DOWN';
-                if (isOffline) {
-                    oltObj.offline++;
-                    stats.offline++;
-                    ponObj.offline.push(normalizedUser);
-                }
-                
-                const hasTicket = normalizedUser.ticket && normalizedUser.ticket !== '';
-                if (hasTicket) {
-                    oltObj.tickets++;
-                    stats.tickets++;
-                    ponObj.tickets.push(normalizedUser);
-                }
-                
-                const hasDrops = normalizedUser.drops && normalizedUser.drops !== '';
-                if (hasDrops) {
-                    ponObj.drops++;
-                    if (ponObj.drops >= CONFIG.MIN_DROPS_THRESHOLD) {
-                        ponObj.hasProblems = true;
-                    }
-                }
-            });
-            
-            state.oltData = oltData;
-            state.discoveredOLTs = discoveredOLTs;
-            state.totalStats = stats;
-            state.userData = users.map(u => utils.normalizeData(u)).filter(Boolean);
-            
-            elements.oltCount.textContent = `${discoveredOLTs.size} OLT${discoveredOLTs.size !== 1 ? 's' : ''}`;
-            
-            setTimeout(() => {
-                utils.animateCounter(elements.totalUsers, stats.users);
-                utils.animateCounter(elements.totalOffline, stats.offline);
-                utils.animateCounter(elements.totalTickets, stats.tickets);
-            }, 100);
-            
-            return oltData;
-            
-        } catch (error) {
-            console.error('OLT Data Processing Error:', error);
-            utils.showToast('Error processing data', 'error');
-            return {};
-        }
+            }
+        });
+
+        users.forEach(user => {
+            if (!user?.pon) return;
+            const ponInfo = utils.parsePON(user.pon);
+            if (!ponInfo) return;
+            const oltKey = utils.generateOLTKey(ponInfo.olt, user.window);
+            const oltObj = oltData[oltKey];
+            const ponObj = oltObj?.pons[ponInfo.ponNumber];
+            if (!oltObj || !ponObj) return;
+
+            oltObj.total++;
+            stats.users++;
+            ponObj.users.push(user);
+
+            if (user.status === 'DOWN') {
+                oltObj.offline++;
+                stats.offline++;
+                ponObj.offline.push(user);
+            }
+            if (user.ticket && user.ticket.trim() !== '') {  // ← Yeh check important hai
+                oltObj.tickets++;
+                stats.tickets++;
+                ponObj.tickets.push(user);
+            }
+            if (user.drops) {
+                ponObj.drops++;
+                if (ponObj.drops >= CONFIG.MIN_DROPS_THRESHOLD) ponObj.hasProblems = true;
+            }
+        });
+
+        state.oltData = oltData;
+        state.discoveredOLTs = discoveredOLTs;
+        state.totalStats = stats;
+        state.userData = users;
+
+        elements.oltCount.textContent = `${discoveredOLTs.size} OLT${discoveredOLTs.size !== 1 ? 's' : ''}`;
+
+        [elements.totalUsers, elements.mobileTotalUsers].forEach(el => utils.animateCounter(el, stats.users));
+        [elements.totalOffline, elements.mobileTotalOffline].forEach(el => utils.animateCounter(el, stats.offline));
+        [elements.totalTickets, elements.mobileTotalTickets].forEach(el => utils.animateCounter(el, stats.tickets));
+        [elements.mobileOltCount].forEach(el => el && (el.textContent = discoveredOLTs.size));
+
+        const currentTime = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+        [elements.lastSyncTime, elements.mobileLastSyncTime].forEach(el => el && (el.textContent = currentTime));
+
+        return oltData;
     }
 };
 
-// ===============================
-// UI Renderer - Dynamic OLT Cards
-// ===============================
 const uiRenderer = {
-    renderOLTCards(oltData) {
-        try {
-            elements.oltContainer.innerHTML = '';
-            
-            const oltNames = Object.keys(oltData);
-            
-            if (oltNames.length === 0) {
-                elements.oltContainer.innerHTML = `
-                    <div class="no-data">
-                        <i class="fas fa-database"></i>
-                        <h3>No Rack Data Available</h3>
-                        <p>No OLTs found in TSN window data.</p>
-                    </div>
-                `;
-                return;
-            }
-            
-            const sortedOlts = oltNames.sort();
-            
-            sortedOlts.forEach((oltName, index) => {
-                const olt = oltData[oltName];
-                const card = this.createOLTCard(olt, index);
-                elements.oltContainer.appendChild(card);
+    initializeWindowSelector() {
+        const populate = (selector) => {
+            if (!selector) return;
+            selector.innerHTML = '';
+            const allOption = document.createElement('option');
+            allOption.value = 'ALL';
+            allOption.textContent = CONFIG.WINDOWS.ALL;
+            selector.appendChild(allOption);
+            Object.entries(CONFIG.WINDOWS).forEach(([key, value]) => {
+                if (key !== 'ALL') {
+                    const option = document.createElement('option');
+                    option.value = key;
+                    option.textContent = value;
+                    selector.appendChild(option);
+                }
             });
-            
-            setTimeout(() => {
-                elements.oltContainer.querySelectorAll('.clickable-cell').forEach(cell => {
-                    cell.addEventListener('click', eventHandlers.handleCellClick);
-                });
-            }, 100);
-            
-        } catch (error) {
-            console.error('OLT Cards Rendering Error:', error);
-        }
+            selector.value = CONFIG.CURRENT_WINDOW;
+        };
+        populate(elements.windowSelector);
+        populate(elements.mobileWindowSelector);
     },
-
-    createOLTCard(olt, index) {
-        try {
-            const card = document.createElement('div');
-            card.className = 'olt-card';
-            card.style.animationDelay = `${index * 100}ms`;
-            
-            const activePons = Object.values(olt.pons).filter(pon => pon.users.length > 0).length;
-            
-            card.innerHTML = `
-                <div class="olt-card-header">
-                    <div class="olt-name">
-                        <i class="fas fa-server"></i>
-                        <div>
-                            <span>${olt.name}</span>
-                            <div class="subtitle" style="font-size: 0.7rem; opacity: 0.9; margin-top: 2px;">
-                                ${activePons} active PON${activePons !== 1 ? 's' : ''}
-                            </div>
-                        </div>
+    renderOLTCards(oltData) {
+        elements.oltContainer.innerHTML = '';
+        const oltKeys = Object.keys(oltData);
+        if (oltKeys.length === 0) {
+            elements.oltContainer.innerHTML = `<div class="no-data">
+                <i class="fas fa-database"></i>
+                <h3>No Rack Data Available</h3>
+                <p>No OLTs found.</p>
+            </div>`;
+            return;
+        }
+        const sortedOltKeys = oltKeys.sort((a, b) => {
+            const oa = oltData[a], ob = oltData[b];
+            if (oa.window < ob.window) return -1;
+            if (oa.window > ob.window) return 1;
+            return oa.name.localeCompare(ob.name);
+        });
+        if (CONFIG.CURRENT_WINDOW === 'ALL') {
+            let currentWindow = '';
+            sortedOltKeys.forEach((key) => {
+                const olt = oltData[key];
+                if (olt.window !== currentWindow) {
+                    currentWindow = olt.window;
+                    elements.oltContainer.appendChild(this.createWindowHeader(olt.window));
+                }
+                elements.oltContainer.appendChild(this.createOLTCard(olt));
+            });
+        } else {
+            sortedOltKeys.forEach(key => elements.oltContainer.appendChild(this.createOLTCard(oltData[key])));
+        }
+        setTimeout(() => {
+            elements.oltContainer.querySelectorAll('.clickable-cell').forEach(cell => {
+                cell.addEventListener('click', eventHandlers.handleCellClick);
+            });
+        }, 100);
+    },
+    createWindowHeader(windowName) {
+        const header = document.createElement('div');
+        header.className = 'window-header';
+        const displayName = CONFIG.WINDOWS[windowName] || windowName;
+        const data = state.allWindowsData[windowName];
+        header.innerHTML = `
+            <div class="window-header-content">
+                <i class="fas fa-window-restore"></i>
+                <div>
+                    <h3>${displayName}</h3>
+                    <div class="window-header-subtitle">
+                        ${data?.count || 0} users • ${data ? 'Last updated: ' + utils.formatDateTime(data.timestamp) : 'No data'}
                     </div>
-                    <div class="olt-stats">
-                        <div class="olt-stat">
-                            <span class="olt-stat-label">Total</span>
-                            <span class="olt-stat-value">${olt.total}</span>
-                        </div>
-                        <div class="olt-stat">
-                            <span class="olt-stat-label">Offline</span>
-                            <span class="olt-stat-value">${olt.offline}</span>
-                        </div>
-                        <div class="olt-stat">
-                            <span class="olt-stat-label">Tickets</span>
-                            <span class="olt-stat-value">${olt.tickets}</span>
+                </div>
+            </div>
+        `;
+        return header;
+    },
+    createOLTCard(olt) {
+        const card = document.createElement('div');
+        card.className = 'olt-card';
+        const activePons = Object.values(olt.pons).filter(p => p.users.length > 0).length;
+        const windowBadge = CONFIG.CURRENT_WINDOW === 'ALL' ? `<span class="window-badge">${olt.window}</span>` : '';
+        card.innerHTML = `
+            <div class="olt-card-header">
+                <div class="olt-name">
+                    <i class="fas fa-server"></i>
+                    <div>
+                        <span>${olt.name} ${windowBadge}</span>
+                        <div class="subtitle">
+                            ${activePons} active PON${activePons !== 1 ? 's' : ''} • ${olt.total} Users
                         </div>
                     </div>
                 </div>
-                <div class="olt-card-body">
-                    <table class="olt-table">
-                        <thead>
-                            <tr>
-                                <th>PON</th>
-                                <th>Users</th>
-                                <th>Offline</th>
-                                <th>Tickets</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${Array.from({ length: CONFIG.MAX_PONS_PER_OLT }, (_, i) => {
-                                const ponNumber = i + 1;
-                                const ponData = olt.pons[ponNumber];
-                                
-                                if (ponData.users.length === 0 && !ponData.hasProblems) {
-                                    return '';
-                                }
-                                
-                                const hasProblems = ponData.hasProblems;
-                                const statusClass = hasProblems ? 'status-problem' : '';
-                                const statusIcon = hasProblems ? 
-                                    '<span class="status-problem" title="Multiple drops detected">🔴</span>' : 
-                                    '<span class="green-circle" title="Normal"></span>';
-                                
-                                return `
-                                    <tr>
-                                        <td><strong>${olt.name}P${ponNumber}</strong></td>
-                                        <td class="clickable-cell" 
-                                            data-olt="${olt.name}" 
-                                            data-pon="${ponNumber}" 
-                                            data-type="all">
-                                            ${ponData.users.length}
-                                        </td>
-                                        <td class="clickable-cell" 
-                                            data-olt="${olt.name}" 
-                                            data-pon="${ponNumber}" 
-                                            data-type="offline">
-                                            ${ponData.offline.length}
-                                        </td>
-                                        <td class="clickable-cell" 
-                                            data-olt="${olt.name}" 
-                                            data-pon="${ponNumber}" 
-                                            data-type="ticket">
-                                            ${ponData.tickets.length}
-                                        </td>
-                                        <td class="status-cell ${statusClass}">
-                                            ${statusIcon}
-                                        </td>
-                                    </tr>
-                                `;
-                            }).join('')}
-                        </tbody>
-                        <tfoot>
-                            <tr>
-                                <td><strong>${olt.name} Total</strong></td>
-                                <td class="clickable-cell" 
-                                    data-olt="${olt.name}" 
-                                    data-type="olt-all">
-                                    ${olt.total}
-                                </td>
-                                <td class="clickable-cell" 
-                                    data-olt="${olt.name}" 
-                                    data-type="olt-offline">
-                                    ${olt.offline}
-                                </td>
-                                <td class="clickable-cell" 
-                                    data-olt="${olt.name}" 
-                                    data-type="olt-ticket">
-                                    ${olt.tickets}
-                                </td>
-                                <td></td>
-                            </tr>
-                        </tfoot>
-                    </table>
+                <div class="olt-stats">
+                    <div class="olt-stat"><span class="olt-stat-label">Total</span><span class="olt-stat-value">${olt.total}</span></div>
+                    <div class="olt-stat"><span class="olt-stat-label">Offline</span><span class="olt-stat-value">${olt.offline}</span></div>
+                    <div class="olt-stat"><span class="olt-stat-label">Tickets</span><span class="olt-stat-value">${olt.tickets}</span></div>
                 </div>
-            `;
-            
-            return card;
-            
-        } catch (error) {
-            console.error('OLT Card Creation Error:', error);
-            return document.createElement('div');
-        }
+            </div>
+            <div class="olt-card-body">
+                <table class="olt-table">
+                    <thead>
+                        <tr>
+                            <th>PON No</th>
+                            <th>Live</th>
+                            <th>Off</th>
+                            <th>Comp</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${Array.from({ length: CONFIG.MAX_PONS_PER_OLT }, (_, i) => {
+                            const num = i + 1;
+                            const pon = olt.pons[num];
+                            if (pon.users.length === 0 && !pon.hasProblems) return '';
+                            const hasProblems = pon.hasProblems;
+                            const statusIcon = hasProblems ? '<span class="status-problem" title="Multiple drops">🔴</span>' : '<span class="green-circle" title="Normal"></span>';
+                            return `
+                                <tr>
+                                    <td class="pon-number-cell">
+                                        <strong>PON ${num}</strong>
+                                        <div class="pon-status-indicator ${hasProblems ? 'problem' : 'normal'}"></div>
+                                        ${pon.drops > 0 ? `<span class="pon-details">${pon.drops} drop${pon.drops > 1 ? 's' : ''}</span>` : ''}
+                                    </td>
+                                    <td class="clickable-cell" data-olt="${olt.key}" data-pon="${num}" data-type="all">${pon.users.length}</td>
+                                    <td class="clickable-cell" data-olt="${olt.key}" data-pon="${num}" data-type="offline">${pon.offline.length}</td>
+                                    <td class="clickable-cell" data-olt="${olt.key}" data-pon="${num}" data-type="ticket">${pon.tickets.length}</td>
+                                    <td class="status-cell ${hasProblems ? 'status-problem' : ''}">${statusIcon}</td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td class="pon-number-cell"><strong>${olt.name} Total</strong></td>
+                            <td class="clickable-cell" data-olt="${olt.key}" data-type="olt-all">${olt.total}</td>
+                            <td class="clickable-cell" data-olt="${olt.key}" data-type="olt-offline">${olt.offline}</td>
+                            <td class="clickable-cell" data-olt="${olt.key}" data-type="olt-ticket">${olt.tickets}</td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        `;
+        return card;
     },
-
-    renderUserModal(users, title, subtitle, oltName = '', ponNumber = '') {
-        try {
-            elements.modalTitle.textContent = title;
-            elements.modalSubtitle.textContent = subtitle;
-            elements.currentUsersCount.textContent = users.length;
-            elements.modalTimestamp.textContent = utils.formatTime(new Date());
-            
-            state.selectedUsers = users;
-            
-            // Store OLT and PON info for screenshot
-            state.currentOltName = oltName;
+    renderUserModal(users, title, subtitle, oltKey = '', ponNumber = '') {
+        elements.modalTitle.textContent = title;
+        elements.modalSubtitle.textContent = subtitle;
+        elements.currentUsersCount.textContent = users.length;
+        elements.modalTimestamp.textContent = utils.formatTime(new Date());
+        state.selectedUsers = users;
+        if (oltKey) {
+            const parsed = utils.parseOLTKey(oltKey);
+            state.currentOltName = parsed.oltName;
             state.currentPonNumber = ponNumber;
-            
-            if (!users || users.length === 0) {
-                elements.modalBody.innerHTML = `
-                    <div class="no-data">
-                        <i class="fas fa-users-slash"></i>
-                        <h3>No Users Found</h3>
-                        <p>There are no users matching the selected criteria.</p>
-                    </div>
-                `;
-                return;
-            }
-            
-            const table = document.createElement('table');
-            table.className = 'user-table';
-            
-            table.innerHTML = `
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Name</th>
-                        <th>User ID</th>
-                        <th>Phone</th>
-                        <th>Power (dBm)</th>
-                        <th style="max-width: 200px; min-width: 150px;">Location</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${users.map((user, index) => {
-                        const isOffline = user.status === 'DOWN';
-                        const hasTicket = user.ticket && user.ticket !== '';
-                        const rowClass = isOffline ? 'highlight-offline' : hasTicket ? 'highlight-ticket' : '';
-                        const statusBadge = isOffline ? 
-                            '<span class="badge badge-danger">Offline</span>' : 
-                            '<span class="badge badge-success">Online</span>';
-                        
-                        // Truncate long location text
-                        const locationText = user.location || 'N/A';
-                        const truncatedLocation = locationText.length > 50 ? 
-                            locationText.substring(0, 47) + '...' : locationText;
-                        
-                        return `
-                            <tr class="${rowClass}">
-                                <td><strong>${index + 1}</strong></td>
-                                <td>${user.name || 'N/A'}</td>
-                                <td><code>${user.id || 'N/A'}</code></td>
-                                <td>${user.phone || 'N/A'}</td>
-                                <td>${user.power !== null ? `<strong>${user.power.toFixed(2)}</strong>` : 'N/A'}</td>
-                                <td title="${user.location || 'N/A'}" style="max-width: 200px; word-wrap: break-word; white-space: normal; line-height: 1.4;">
-                                    ${truncatedLocation}
-                                </td>
-                                <td>${statusBadge}</td>
-                            </tr>
-                        `;
-                    }).join('')}
-                </tbody>
-            `;
-            
-            elements.modalBody.innerHTML = '';
-            elements.modalBody.appendChild(table);
-            
-            elements.userModal.style.display = 'flex';
-            
-        } catch (error) {
-            console.error('Modal Rendering Error:', error);
         }
+        if (!users.length) {
+            elements.modalBody.innerHTML = `<div class="no-data">
+                <i class="fas fa-ticket-alt"></i>
+                <h3>No Open Repairs Complaints</h3>
+                <p>No users with open Repairs tickets in this selection.</p>
+            </div>`;
+            elements.userModal.style.display = 'flex';
+            return;
+        }
+        let tableHTML = `<table class="user-table"><thead><tr>
+            <th>#</th><th>Name</th><th>User ID</th><th>Phone</th><th>Power (dBm)</th><th>Location</th><th>Status</th><th>PON</th>
+            ${CONFIG.CURRENT_WINDOW === 'ALL' ? '<th>Window</th>' : ''}
+        </tr></thead><tbody>`;
+        users.forEach((user, index) => {
+            const isOffline = user.status === 'DOWN';
+            const hasTicket = !!user.ticket && user.ticket.trim() !== '';
+            const rowClass = isOffline ? 'highlight-offline' : hasTicket ? 'highlight-ticket' : '';
+            const statusBadge = isOffline ? '<span class="badge badge-danger">Offline</span>' : '<span class="badge badge-success">Online</span>';
+            const location = user.location || 'N/A';
+            const truncated = location.length > 40 ? location.substring(0, 37) + '...' : location;
+            tableHTML += `<tr class="${rowClass}">
+                <td><strong>${index + 1}</strong></td>
+                <td>${user.name || 'N/A'}</td>
+                <td><code>${user.id || 'N/A'}</code></td>
+                <td>${user.phone || 'N/A'}</td>
+                <td>${user.power !== null ? user.power.toFixed(2) : 'N/A'}</td>
+                <td title="${location}">${truncated}</td>
+                <td>${statusBadge}</td>
+                <td><code>${user.pon || 'N/A'}</code></td>
+                ${CONFIG.CURRENT_WINDOW === 'ALL' ? `<td><span class="window-badge-small">${user.window || 'N/A'}</span></td>` : ''}
+            </tr>`;
+        });
+        tableHTML += `</tbody></table>`;
+        elements.modalBody.innerHTML = tableHTML;
+        elements.userModal.style.display = 'flex';
     }
 };
 
-// ===============================
-// Screenshot Service - Enhanced with PON Number and Text Wrapping
-// ===============================
 const screenshotService = {
-    async captureElementWithFullTable(element, filename, tableSelector, screenshotInfo = {}) {
-        return new Promise((resolve, reject) => {
-            try {
-                utils.showToast('Preparing full table screenshot...', 'info');
-                
-                // Find the table
-                const table = tableSelector ? 
-                    element.querySelector(tableSelector) : 
-                    element.querySelector('table');
-                
-                if (!table) {
-                    utils.showToast('Table not found for screenshot', 'error');
-                    reject(new Error('Table not found'));
-                    return;
-                }
-                
-                // Create a temporary container
-                const tempContainer = document.createElement('div');
-                tempContainer.id = 'temp-screenshot-container';
-                
-                // Calculate optimal width
-                const tableWidth = table.scrollWidth;
-                const maxWidth = Math.min(tableWidth + 100, window.innerWidth * 0.95);
-                
-                tempContainer.style.cssText = `
-                    position: fixed;
-                    left: 0;
-                    top: 0;
-                    width: ${maxWidth}px;
-                    background: #ffffff;
-                    padding: 25px;
-                    border-radius: 16px;
-                    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-                    z-index: 10000;
-                    overflow: visible;
-                    box-sizing: border-box;
-                    font-family: 'Inter', sans-serif;
-                `;
-                
-                // Clone the table with all its styles
-                const clonedTable = table.cloneNode(true);
-                
-                // Apply screenshot-specific styles
-                clonedTable.style.cssText = `
-                    width: 100% !important;
-                    max-width: none !important;
-                    border-collapse: collapse !important;
-                    font-family: 'Inter', sans-serif !important;
-                    font-size: 14px !important;
-                    background: #ffffff !important;
-                    color: #1e293b !important;
-                    table-layout: auto !important;
-                    border: 2px solid #e2e8f0 !important;
-                `;
-                
-                // Fix for location column text wrapping
-                const allCells = clonedTable.querySelectorAll('td, th');
-                allCells.forEach(cell => {
-                    const isLocationCell = cell.textContent.includes('Location') || 
-                                          (cell.cellIndex === 5 && clonedTable.rows[0].cells[cell.cellIndex]?.textContent.includes('Location'));
-                    
-                    if (isLocationCell) {
-                        cell.style.cssText = `
-                            padding: 10px 12px !important;
-                            border: 1px solid #e2e8f0 !important;
-                            white-space: normal !important;
-                            word-wrap: break-word !important;
-                            word-break: break-word !important;
-                            max-width: 200px !important;
-                            min-width: 150px !important;
-                            background: #ffffff !important;
-                            line-height: 1.4 !important;
-                            text-align: left !important;
-                        `;
-                    } else {
-                        cell.style.cssText = `
-                            padding: 10px 12px !important;
-                            border: 1px solid #e2e8f0 !important;
-                            white-space: nowrap !important;
-                            overflow: visible !important;
-                            background: #ffffff !important;
-                            text-align: center !important;
-                        `;
-                    }
-                });
-                
-                // Style header cells
-                const headerCells = clonedTable.querySelectorAll('th');
-                headerCells.forEach(th => {
-                    th.style.cssText = `
-                        padding: 14px 12px !important;
-                        background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
-                        color: white !important;
-                        font-weight: 600 !important;
-                        text-transform: uppercase !important;
-                        letter-spacing: 0.05em !important;
-                        border: 1px solid #2563eb !important;
-                        text-align: center !important;
-                        font-size: 13px !important;
-                    `;
-                });
-                
-                // Style status badges
-                const badges = clonedTable.querySelectorAll('.badge');
-                badges.forEach(badge => {
-                    badge.style.cssText = `
-                        display: inline-block !important;
-                        padding: 4px 10px !important;
-                        font-size: 11px !important;
-                        font-weight: 600 !important;
-                        border-radius: 20px !important;
-                        text-transform: uppercase !important;
-                        letter-spacing: 0.05em !important;
-                        border: none !important;
-                    `;
-                    
-                    if (badge.classList.contains('badge-danger')) {
-                        badge.style.background = '#ef4444 !important';
-                        badge.style.color = 'white !important';
-                    } else if (badge.classList.contains('badge-success')) {
-                        badge.style.background = '#10b981 !important';
-                        badge.style.color = 'white !important';
-                    }
-                });
-                
-                // Style code elements
-                const codeElements = clonedTable.querySelectorAll('code');
-                codeElements.forEach(code => {
-                    code.style.cssText = `
-                        font-family: 'SF Mono', 'Monaco', monospace !important;
-                        font-size: 12px !important;
-                        background: #f1f5f9 !important;
-                        padding: 2px 6px !important;
-                        border-radius: 4px !important;
-                        border: 1px solid #e2e8f0 !important;
-                    `;
-                });
-                
-                // Create header with all information
-                const header = document.createElement('div');
-                header.style.cssText = `
-                    margin-bottom: 20px;
-                    padding-bottom: 15px;
-                    border-bottom: 2px solid #3b82f6;
-                    font-family: 'Inter', sans-serif;
-                `;
-                
-                const timestamp = new Date().toLocaleString('en-IN', {
-                    day: '2-digit',
-                    month: 'short',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    second: '2-digit',
-                    hour12: false
-                });
-                
-                // Build header HTML with PON information
-                let ponInfoHTML = '';
-                if (screenshotInfo.oltName && screenshotInfo.ponNumber) {
-                    ponInfoHTML = `
-                        <div style="display: flex; align-items: center; gap: 8px; margin-top: 6px;">
-                            <span style="background: #3b82f6; color: white; padding: 4px 10px; border-radius: 6px; font-weight: 600; font-size: 13px;">
-                                OLT: ${screenshotInfo.oltName}
-                            </span>
-                            <span style="background: #10b981; color: white; padding: 4px 10px; border-radius: 6px; font-weight: 600; font-size: 13px;">
-                                PON: ${screenshotInfo.ponNumber}
-                            </span>
-                        </div>
-                    `;
-                } else if (screenshotInfo.oltName) {
-                    ponInfoHTML = `
-                        <div style="display: flex; align-items: center; gap: 8px; margin-top: 6px;">
-                            <span style="background: #3b82f6; color: white; padding: 4px 10px; border-radius: 6px; font-weight: 600; font-size: 13px;">
-                                OLT: ${screenshotInfo.oltName}
-                            </span>
-                        </div>
-                    `;
-                }
-                
-                header.innerHTML = `
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
-                        <div>
-                            <h3 style="margin: 0 0 8px 0; color: #1e293b; font-size: 20px; font-weight: 700;">
-                                ${filename}
-                            </h3>
-                            <p style="margin: 0; color: #64748b; font-size: 13px; font-weight: 500;">
-                                ${screenshotInfo.type || 'Data'} | ${timestamp}
-                            </p>
-                        </div>
-                        <div style="text-align: right;">
-                            <div style="background: #f1f5f9; padding: 6px 12px; border-radius: 8px; font-weight: 600; color: #3b82f6;">
-                                ${clonedTable.rows.length - 1} Users
-                            </div>
-                        </div>
-                    </div>
-                    ${ponInfoHTML}
-                `;
-                
-                tempContainer.appendChild(header);
-                tempContainer.appendChild(clonedTable);
-                document.body.appendChild(tempContainer);
-                
-                // Calculate dimensions
-                const tempRect = tempContainer.getBoundingClientRect();
-                const deviceScale = window.devicePixelRatio || 1;
-                const scale = CONFIG.SCREENSHOT_QUALITY * deviceScale;
-                
-                // Hide the temporary container during capture
-                tempContainer.style.opacity = '0';
-                tempContainer.style.pointerEvents = 'none';
-                
-                const html2canvasOptions = {
-                    scale: scale,
-                    useCORS: true,
-                    allowTaint: true,
-                    backgroundColor: '#ffffff',
-                    logging: false,
-                    removeContainer: true,
-                    imageTimeout: 30000,
-                    width: tempRect.width * scale,
-                    height: tempRect.height * scale,
-                    x: 0,
-                    y: 0,
-                    scrollX: 0,
-                    scrollY: 0,
-                    windowWidth: tempRect.width * scale,
-                    windowHeight: tempRect.height * scale,
-                    onclone: function(clonedDoc) {
-                        const clonedTemp = clonedDoc.getElementById('temp-screenshot-container');
-                        if (clonedTemp) {
-                            clonedTemp.style.cssText = tempContainer.style.cssText;
-                            clonedTemp.style.opacity = '1';
-                            clonedTemp.style.position = 'absolute';
-                            clonedTemp.style.left = '0';
-                            clonedTemp.style.top = '0';
-                        }
-                    }
-                };
-                
-                html2canvas(tempContainer, html2canvasOptions)
-                    .then(canvas => {
-                        // Create download link
-                        const link = document.createElement('a');
-                        const safeFilename = filename.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-                        const finalTimestamp = new Date().toISOString().replace(/[:.]/g, '-');
-                        link.download = `${safeFilename}-${finalTimestamp}.png`;
-                        link.href = canvas.toDataURL('image/png', 1.0);
-                        
-                        // Trigger download
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                        
-                        // Clean up
-                        document.body.removeChild(tempContainer);
-                        
-                        utils.showToast('Full table screenshot saved!', 'success');
-                        resolve();
-                    })
-                    .catch(error => {
-                        console.error('Screenshot capture error:', error);
-                        document.body.removeChild(tempContainer);
-                        utils.showToast('Screenshot failed: ' + error.message, 'error');
-                        reject(error);
-                    });
-                
-            } catch (error) {
-                console.error('Screenshot setup error:', error);
-                utils.showToast('Failed to setup screenshot', 'error');
-                reject(error);
-            }
-        });
-    },
+    async captureElement(element, filename, tableSelector, info = {}) {
+        utils.showToast('Capturing full screenshot...', 'info');
 
-    async captureHighQuality(element, filename) {
-        return new Promise((resolve, reject) => {
-            try {
-                const originalStyles = {
-                    width: element.style.width,
-                    height: element.style.height,
-                    maxWidth: element.style.maxWidth,
-                    maxHeight: element.style.maxHeight,
-                    overflow: element.style.overflow,
-                    position: element.style.position,
-                    top: element.style.top,
-                    left: element.style.left
-                };
-                
-                const rect = element.getBoundingClientRect();
-                const deviceScale = window.devicePixelRatio || 1;
-                const scale = CONFIG.SCREENSHOT_QUALITY * deviceScale;
-                
-                // Save original styles
-                const originalInlineStyles = element.getAttribute('style') || '';
-                
-                // Apply temporary styles
-                element.style.cssText += `
-                    width: ${rect.width}px !important;
-                    height: ${rect.height}px !important;
-                    max-width: none !important;
-                    max-height: none !important;
-                    overflow: visible !important;
-                    position: relative !important;
-                    top: 0 !important;
-                    left: 0 !important;
-                    background: #ffffff !important;
+        const tempContainer = document.createElement('div');
+        tempContainer.style.cssText = `
+            position: fixed;
+            left: -9999px;
+            top: 0;
+            width: 1400px;
+            background: #ffffff;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            z-index: 10000;
+            overflow: visible;
+            font-family: 'Inter', sans-serif;
+        `;
+        document.body.appendChild(tempContainer);
+
+        const header = document.createElement('div');
+        header.style.marginBottom = '20px';
+        header.style.paddingBottom = '16px';
+        header.style.borderBottom = '2px solid #3b82f6';
+        header.innerHTML = `
+            <h3 style="margin:0; color:#1e293b; font-size:20px;">${filename}</h3>
+            <p style="margin:8px 0 0; color:#64748b; font-size:13px;">
+                ${new Date().toLocaleString('en-IN')} | ${CONFIG.WINDOWS[CONFIG.CURRENT_WINDOW] || CONFIG.CURRENT_WINDOW}
+            </p>
+        `;
+        tempContainer.appendChild(header);
+
+        const contentToClone = element.querySelector(tableSelector || 'table') || element;
+        const clonedContent = contentToClone.cloneNode(true);
+
+        clonedContent.style.cssText = `
+            width: 100% !important;
+            max-width: 1350px !important;
+            border-collapse: collapse !important;
+            font-family: 'Inter', sans-serif !important;
+            font-size: 13px !important;
+            background: #ffffff !important;
+            color: #1e293b !important;
+            table-layout: auto !important;
+        `;
+
+        const allCells = clonedContent.querySelectorAll('td, th');
+        allCells.forEach(cell => {
+            if (cell.cellIndex === 5 || cell.textContent.includes('Location')) {
+                cell.style.cssText = `
+                    max-width: 220px !important;
+                    min-width: 140px !important;
+                    white-space: normal !important;
+                    word-wrap: break-word !important;
+                    word-break: break-word !important;
+                    line-height: 1.4 !important;
+                    padding: 10px 12px !important;
+                    text-align: left !important;
                 `;
-                
-                const html2canvasOptions = {
-                    scale: scale,
-                    useCORS: true,
-                    allowTaint: true,
-                    backgroundColor: '#ffffff',
-                    logging: false,
-                    removeContainer: true,
-                    imageTimeout: 20000,
-                    width: rect.width * scale,
-                    height: rect.height * scale,
-                    x: 0,
-                    y: 0,
-                    scrollX: 0,
-                    scrollY: 0,
-                    windowWidth: rect.width * scale,
-                    windowHeight: rect.height * scale
-                };
-                
-                html2canvas(element, html2canvasOptions)
-                    .then(canvas => {
-                        // Restore original styles
-                        element.setAttribute('style', originalInlineStyles);
-                        
-                        // Download the image
-                        const link = document.createElement('a');
-                        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-                        link.download = `${filename}-${timestamp}.png`;
-                        link.href = canvas.toDataURL('image/png', 1.0);
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                        
-                        resolve();
-                    })
-                    .catch(error => {
-                        element.setAttribute('style', originalInlineStyles);
-                        reject(error);
-                    });
-                    
-            } catch (error) {
-                reject(error);
+            } else {
+                cell.style.cssText = `
+                    padding: 10px 12px !important;
+                    white-space: nowrap !important;
+                    text-align: center !important;
+                `;
             }
         });
+
+        const headerCells = clonedContent.querySelectorAll('th');
+        headerCells.forEach(th => {
+            th.style.background = 'linear-gradient(135deg, #3b82f6, #2563eb) !important';
+            th.style.color = 'white !important';
+            th.style.fontWeight = '600 !important';
+            th.style.textTransform = 'uppercase !important';
+            th.style.letterSpacing = '0.05em !important';
+        });
+
+        const badges = clonedContent.querySelectorAll('.badge');
+        badges.forEach(badge => {
+            badge.style.padding = '4px 10px !important';
+            badge.style.fontSize = '11px !important';
+            badge.style.borderRadius = '20px !important';
+        });
+
+        tempContainer.appendChild(clonedContent);
+
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        const canvas = await html2canvas(tempContainer, {
+            scale: CONFIG.SCREENSHOT_QUALITY || 2,
+            useCORS: true,
+            backgroundColor: '#ffffff',
+            logging: false,
+            windowWidth: tempContainer.scrollWidth,
+            windowHeight: tempContainer.scrollHeight,
+            scrollX: 0,
+            scrollY: 0
+        });
+
+        const link = document.createElement('a');
+        const safeName = filename.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        link.download = `${safeName}-${timestamp}.png`;
+        link.href = canvas.toDataURL('image/png', 1.0);
+        link.click();
+
+        document.body.removeChild(tempContainer);
+        utils.showToast('Full screenshot saved!', 'success');
     },
 
     captureDashboard() {
-        utils.showToast('Capturing full dashboard screenshot...', 'info');
-        
-        const dashboard = document.querySelector('.dashboard-container');
-        if (!dashboard) {
-            utils.showToast('Dashboard element not found', 'error');
-            return;
-        }
-        
-        const screenshotInfo = {
-            type: 'Dashboard',
-            timestamp: new Date().toLocaleString()
-        };
-        
-        this.captureElementWithFullTable(dashboard, 'rack-dashboard-tsn', '.olt-container', screenshotInfo)
-            .then(() => {
-                utils.showToast('Dashboard screenshot saved!', 'success');
-            })
-            .catch(error => {
-                console.error('Dashboard screenshot failed:', error);
-                utils.showToast('Failed to capture dashboard', 'error');
-            });
+        this.captureElement(document.querySelector('.dashboard-container'), 
+            `rack-dashboard-${CONFIG.CURRENT_WINDOW.toLowerCase()}`, 
+            '.olt-container');
     },
 
     captureModal() {
-        if (!state.selectedUsers || state.selectedUsers.length === 0) {
-            utils.showToast('No users to capture', 'warning');
-            return;
-        }
-        
-        utils.showToast('Capturing full user table screenshot...', 'info');
-        
-        const modalContent = document.querySelector('.modal-content');
-        if (!modalContent) {
-            utils.showToast('Modal element not found', 'error');
-            return;
-        }
-        
-        const type = state.modalType.charAt(0).toUpperCase() + state.modalType.slice(1);
-        
-        const screenshotInfo = {
-            type: type + ' Users',
-            oltName: state.currentOltName || '',
-            ponNumber: state.currentPonNumber || '',
-            timestamp: new Date().toLocaleString()
-        };
-        
-        this.captureElementWithFullTable(modalContent, `rack-users-${type}`, '.user-table', screenshotInfo)
-            .then(() => {
-                utils.showToast('User table screenshot saved!', 'success');
-            })
-            .catch(error => {
-                console.error('Modal screenshot failed:', error);
-                utils.showToast('Failed to capture screenshot', 'error');
-            });
+        if (!state.selectedUsers.length) return utils.showToast('No users to capture', 'warning');
+        this.captureElement(document.querySelector('.modal-content'), 
+            `rack-users-${CONFIG.CURRENT_WINDOW.toLowerCase()}-${state.modalType}`, 
+            '.user-table');
     }
 };
 
-// ===============================
-// Event Handlers
-// ===============================
 const eventHandlers = {
     handleCellClick(event) {
-        try {
-            const cell = event.currentTarget;
-            const olt = cell.dataset.olt;
-            const pon = cell.dataset.pon;
-            const type = cell.dataset.type;
-            
-            if (!olt || !type) return;
-            
-            let users = [];
-            let title = '';
-            let subtitle = '';
-            
-            const oltData = state.oltData[olt];
-            if (!oltData) return;
-            
-            if (type.startsWith('olt-')) {
-                const filterType = type.replace('olt-', '');
-                
-                users = Object.values(oltData.pons).flatMap(ponData => {
-                    if (filterType === 'all') return ponData.users;
-                    if (filterType === 'offline') return ponData.offline;
-                    if (filterType === 'ticket') return ponData.tickets;
-                    return [];
-                });
-                
-                title = `${olt} - ${filterType.charAt(0).toUpperCase() + filterType.slice(1)} Users`;
-                subtitle = `${users.length} users found`;
-                
-                state.modalType = filterType;
-                state.currentOltName = olt;
-                state.currentPonNumber = '';
-            } else {
-                const ponNumber = parseInt(pon);
-                const ponData = oltData.pons[ponNumber];
-                
-                if (!ponData) return;
-                
-                if (type === 'all') users = ponData.users;
-                if (type === 'offline') users = ponData.offline;
-                if (type === 'ticket') users = ponData.tickets;
-                
-                title = `${olt}P${pon} - ${type.charAt(0).toUpperCase() + type.slice(1)} Users`;
-                subtitle = `${users.length} users in PON ${pon}`;
-                
-                state.modalType = type;
-                state.currentOltName = olt;
-                state.currentPonNumber = ponNumber;
-            }
-            
-            uiRenderer.renderUserModal(users, title, subtitle, olt, pon);
-            
-        } catch (error) {
-            console.error('Cell click handler error:', error);
-        }
-    },
+        const cell = event.currentTarget;
+        const oltKey = cell.dataset.olt;
+        const pon = cell.dataset.pon;
+        const type = cell.dataset.type;
+        if (!oltKey || !type) return;
 
+        let users = [];
+        let title = '';
+        let subtitle = '';
+
+        const olt = state.oltData[oltKey];
+        if (!olt) return;
+
+        const { oltName, windowName } = utils.parseOLTKey(oltKey);
+        const windowDisplay = CONFIG.WINDOWS[windowName] || windowName;
+
+        if (type.startsWith('olt-')) {
+            const filter = type.replace('olt-', '');
+            if (filter === 'ticket') {
+                // Sirf Repairs open complaints wale users (Ticket non-empty)
+                users = Object.values(olt.pons).flatMap(ponData => 
+                    ponData.tickets.filter(user => user.ticket && user.ticket.trim() !== '')
+                );
+                title = `Open Repairs Tickets - ${oltName}`;
+                subtitle = `${users.length} users with open Repairs complaints in ${oltName} (${windowDisplay})`;
+            } else {
+                users = Object.values(olt.pons).flatMap(p => p[filter] || p.users);
+                title = `${oltName} - ${filter.charAt(0).toUpperCase() + filter.slice(1)} Users`;
+                subtitle = `${users.length} users in ${oltName} (${windowDisplay})`;
+            }
+            state.modalType = filter;
+        } else {
+            const ponNumber = parseInt(pon);
+            const ponData = olt.pons[ponNumber];
+            if (!ponData) return;
+
+            if (type === 'ticket') {
+                users = ponData.tickets.filter(user => user.ticket && user.ticket.trim() !== '');
+                title = `${oltName}P${pon} - Open Repairs Tickets`;
+                subtitle = `${users.length} users with open Repairs in PON ${pon} (${windowDisplay})`;
+            } else {
+                users = ponData[type] || ponData.users;
+                title = `${oltName}P${pon} - ${type.charAt(0).toUpperCase() + type.slice(1)} Users`;
+                subtitle = `${users.length} users in PON ${pon} (${windowDisplay})`;
+            }
+            state.modalType = type;
+        }
+
+        uiRenderer.renderUserModal(users, title, subtitle, oltKey, pon);
+    },
     async handleRefresh(silent = false) {
         if (state.isRefreshing) return;
-        
         state.isRefreshing = true;
         utils.showRefreshing(true);
-        
-        if (!silent) {
-            utils.showToast('Refreshing rack data...', 'info');
-        }
-        
+        if (!silent) utils.showToast('Refreshing data...', 'info');
         try {
             const users = await apiService.fetchComplaintsData(silent);
             const oltData = dataProcessor.processOLTData(users);
-            
             elements.oltContainer.style.opacity = '0.7';
             setTimeout(() => {
                 uiRenderer.renderOLTCards(oltData);
                 elements.oltContainer.style.opacity = '1';
             }, 150);
-            
-            if (!silent) {
-                utils.showToast(`Loaded ${state.discoveredOLTs.size} OLTs`, 'success');
-            }
-            
+            if (!silent) utils.showToast(`Loaded ${state.discoveredOLTs.size} OLTs`, 'success');
         } catch (error) {
-            console.error('Refresh failed:', error);
-            if (!silent) {
-                utils.showToast('Refresh failed', 'error');
-            }
+            if (!silent) utils.showToast('Refresh failed', 'error');
         } finally {
             state.isRefreshing = false;
             utils.showRefreshing(false);
         }
     },
-
     handleDownloadCSV() {
-        try {
-            if (!state.selectedUsers || state.selectedUsers.length === 0) {
-                utils.showToast('No users to export', 'warning');
-                return;
-            }
-            
-            const headers = ['#', 'Name', 'User ID', 'Phone', 'Power (dBm)', 'Location', 'Status', 'PON'];
-            const rows = state.selectedUsers.map((user, index) => [
-                index + 1,
-                user.name || '',
-                user.id || '',
-                user.phone || '',
-                user.power ? user.power.toFixed(2) : '',
-                user.location || '',
-                user.status === 'DOWN' ? 'Offline' : 'Online',
-                user.pon || ''
-            ]);
-            
-            const csvContent = [
-                headers.join(','),
-                ...rows.map(row => row.map(cell => `"${cell.toString().replace(/"/g, '""')}"`).join(','))
-            ].join('\n');
-            
-            const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            
-            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-            link.download = `rack-users-${state.modalType}-${timestamp}.csv`;
-            link.href = url;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
-            
-            utils.showToast('CSV exported successfully', 'success');
-            
-        } catch (error) {
-            console.error('CSV export error:', error);
-            utils.showToast('CSV export failed', 'error');
-        }
+        if (!state.selectedUsers.length) return utils.showToast('No users to export', 'warning');
+        const headers = ['#', 'Name', 'User ID', 'Phone', 'Power (dBm)', 'Location', 'Status', 'PON', 'Drops', 'Ticket', 'Window'];
+        const rows = state.selectedUsers.map((u, i) => [
+            i + 1,
+            u.name || '',
+            u.id || '',
+            u.phone || '',
+            u.power?.toFixed(2) || '',
+            u.location || '',
+            u.status === 'DOWN' ? 'Offline' : 'Online',
+            u.pon || '',
+            u.drops || '',
+            u.ticket || '',
+            u.window || ''
+        ]);
+        const csv = [headers.join(','), ...rows.map(r => r.map(c => `"${c.toString().replace(/"/g, '""')}"`).join(','))].join('\n');
+        const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `rack-users-${CONFIG.CURRENT_WINDOW.toLowerCase()}-${state.modalType}-${new Date().toISOString().replace(/[:.]/g, '-')}.csv`;
+        link.click();
+        URL.revokeObjectURL(url);
+        utils.showToast('CSV exported', 'success');
     },
-
     handleCloseModal() {
-        try {
-            elements.userModal.style.display = 'none';
-            state.selectedUsers = [];
-            state.currentOltName = '';
-            state.currentPonNumber = '';
-        } catch (error) {
-            console.error('Modal close error:', error);
-        }
+        elements.userModal.style.display = 'none';
+        state.selectedUsers = [];
+        state.currentOltName = '';
+        state.currentPonNumber = '';
     }
 };
 
-// ===============================
-// Application Initialization
-// ===============================
 const app = {
     async initialize() {
-        try {
-            console.log('🚀 Initializing Rack Dashboard...');
-            
-            this.setupEventListeners();
-            
-            await eventHandlers.handleRefresh(false);
-            
-            state.refreshIntervalId = setInterval(() => {
-                eventHandlers.handleRefresh(true);
-            }, CONFIG.REFRESH_INTERVAL);
-            
-            setTimeout(() => {
-                utils.showToast(`TSN Dashboard Ready • ${state.discoveredOLTs.size} OLTs detected`, 'success', 2000);
-            }, 1000);
-            
-            console.log('✅ Rack Dashboard initialized successfully');
-            
-        } catch (error) {
-            console.error('❌ Initialization failed:', error);
-            utils.showToast('Failed to initialize dashboard', 'error');
-            
-            setTimeout(() => {
-                this.initialize();
-            }, 5000);
-        }
+        uiRenderer.initializeWindowSelector();
+        this.setupEventListeners();
+        await eventHandlers.handleRefresh(false);
+        state.refreshIntervalId = setInterval(() => eventHandlers.handleRefresh(true), CONFIG.REFRESH_INTERVAL);
+        setTimeout(() => utils.showToast('Dashboard Ready', 'success', 2000), 1000);
     },
-
     setupEventListeners() {
-        try {
-            if (elements.btnRefresh) {
-                elements.btnRefresh.addEventListener('click', () => eventHandlers.handleRefresh(false));
+        elements.windowSelector?.addEventListener('change', e => {
+        CONFIG.CURRENT_WINDOW = e.target.value;
+        elements.mobileWindowSelector.value = e.target.value;
+         document.title = `Rack Dashboard | ${CONFIG.WINDOWS[CONFIG.CURRENT_WINDOW] || CONFIG.CURRENT_WINDOW}`;
+            state.oltData = {};
+            state.discoveredOLTs.clear();
+            state.totalStats = { users: 0, offline: 0, tickets: 0 };
+            elements.oltCount.textContent = '0 OLTs';
+            elements.totalUsers.textContent = '0';
+            elements.totalOffline.textContent = '0';
+            elements.totalTickets.textContent = '0';
+            elements.oltContainer.innerHTML = '';
+            [elements.mobileTotalUsers, elements.mobileTotalOffline, elements.mobileTotalTickets, elements.mobileOltCount].forEach(el => el && (el.textContent = '0'));
+            utils.showToast(`Switched to ${CONFIG.WINDOWS[CONFIG.CURRENT_WINDOW] || CONFIG.CURRENT_WINDOW}`, 'info');
+            eventHandlers.handleRefresh(false);
+        });
+        elements.btnRefresh?.addEventListener('click', () => eventHandlers.handleRefresh(false));
+        elements.btnQuickRefresh?.addEventListener('click', () => eventHandlers.handleRefresh(false));
+        elements.btnDownloadCSV?.addEventListener('click', eventHandlers.handleDownloadCSV);
+        elements.btnModalScreenshot?.addEventListener('click', () => screenshotService.captureModal());
+        elements.btnCloseModal?.addEventListener('click', eventHandlers.handleCloseModal);
+        elements.btnScreenshot?.addEventListener('click', () => screenshotService.captureDashboard());
+        elements.userModal?.addEventListener('click', e => {
+            if (e.target === elements.userModal) eventHandlers.handleCloseModal();
+        });
+        document.getElementById('mobileMenuToggle')?.addEventListener('click', () => {
+            document.getElementById('mobileSidebar').classList.add('open');
+            document.getElementById('mobileMenuToggle').style.opacity = '0';
+        });
+        document.getElementById('mobileSidebarClose')?.addEventListener('click', () => {
+            document.getElementById('mobileSidebar').classList.remove('open');
+            document.getElementById('mobileMenuToggle').style.opacity = '1';
+        });
+        document.getElementById('mobileWindowSelector')?.addEventListener('change', e => {
+            CONFIG.CURRENT_WINDOW = e.target.value;
+            elements.windowSelector.value = e.target.value;
+            utils.showToast(`Switched to ${CONFIG.WINDOWS[CONFIG.CURRENT_WINDOW] || CONFIG.CURRENT_WINDOW}`, 'info');
+            eventHandlers.handleRefresh(false);
+            document.getElementById('mobileSidebar').classList.remove('open');
+            document.getElementById('mobileMenuToggle').style.opacity = '1';
+        });
+        document.getElementById('mobileBtnRefresh')?.addEventListener('click', () => {
+            eventHandlers.handleRefresh(false);
+            document.getElementById('mobileSidebar').classList.remove('open');
+            document.getElementById('mobileMenuToggle').style.opacity = '1';
+        });
+        document.getElementById('mobileBtnScreenshot')?.addEventListener('click', () => {
+            screenshotService.captureDashboard();
+            document.getElementById('mobileSidebar').classList.remove('open');
+            document.getElementById('mobileMenuToggle').style.opacity = '1';
+        });
+        document.getElementById('mobileBtnFullscreen')?.addEventListener('click', () => {
+            if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+            else document.exitFullscreen();
+            document.getElementById('mobileSidebar').classList.remove('open');
+            document.getElementById('mobileMenuToggle').style.opacity = '1';
+        });
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape' && elements.userModal.style.display === 'flex') eventHandlers.handleCloseModal();
+            if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+                e.preventDefault();
+                eventHandlers.handleRefresh(false);
             }
-            
-            if (elements.btnQuickRefresh) {
-                elements.btnQuickRefresh.addEventListener('click', () => eventHandlers.handleRefresh(false));
+            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                e.preventDefault();
+                screenshotService.captureDashboard();
             }
-            
-            if (elements.btnDownloadCSV) {
-                elements.btnDownloadCSV.addEventListener('click', eventHandlers.handleDownloadCSV);
-            }
-            
-            if (elements.btnModalScreenshot) {
-                elements.btnModalScreenshot.addEventListener('click', screenshotService.captureModal.bind(screenshotService));
-            }
-            
-            if (elements.btnCloseModal) {
-                elements.btnCloseModal.addEventListener('click', eventHandlers.handleCloseModal);
-            }
-            
-            if (elements.btnScreenshot) {
-                elements.btnScreenshot.addEventListener('click', screenshotService.captureDashboard.bind(screenshotService));
-            }
-            
-            if (elements.userModal) {
-                elements.userModal.addEventListener('click', (event) => {
-                    if (event.target === elements.userModal) {
-                        eventHandlers.handleCloseModal();
-                    }
-                });
-            }
-            
-            document.addEventListener('keydown', (event) => {
-                if (event.key === 'Escape' && elements.userModal.style.display === 'flex') {
-                    eventHandlers.handleCloseModal();
-                }
-                
-                if ((event.ctrlKey || event.metaKey) && event.key === 'r') {
-                    event.preventDefault();
-                    eventHandlers.handleRefresh(false);
-                }
-                
-                if (event.key === 'F5') {
-                    event.preventDefault();
-                    eventHandlers.handleRefresh(false);
-                }
-            });
-            
-            document.addEventListener('visibilitychange', () => {
-                if (!document.hidden && !state.isRefreshing) {
-                    setTimeout(() => eventHandlers.handleRefresh(true), 1000);
-                }
-            });
-            
-            window.addEventListener('resize', utils.debounce(() => {
-                if (Object.keys(state.oltData).length > 0) {
-                    uiRenderer.renderOLTCards(state.oltData);
-                }
-            }, 250));
-            
-            console.log('✅ Event listeners set up');
-            
-        } catch (error) {
-            console.error('❌ Event listener setup failed:', error);
-        }
+        });
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden && !state.isRefreshing) setTimeout(() => eventHandlers.handleRefresh(true), 1000);
+        });
+        window.addEventListener('resize', utils.debounce(() => {
+            if (Object.keys(state.oltData).length > 0) uiRenderer.renderOLTCards(state.oltData);
+        }, 250));
     },
-
     cleanup() {
-        try {
-            if (state.refreshIntervalId) {
-                clearInterval(state.refreshIntervalId);
-            }
-            console.log('🧹 Dashboard cleaned up');
-        } catch (error) {
-            console.error('Cleanup error:', error);
-        }
+        if (state.refreshIntervalId) clearInterval(state.refreshIntervalId);
     }
 };
 
-// ===============================
-// Start Application
-// ===============================
-document.addEventListener('DOMContentLoaded', () => {
-    app.initialize();
-});
-
-window.addEventListener('beforeunload', () => {
-    app.cleanup();
-});
-
-if (typeof window !== 'undefined') {
-    window.RackDashboard = {
-        state,
-        utils,
-        app,
-        refresh: () => eventHandlers.handleRefresh(false),
-        getOLTs: () => Array.from(state.discoveredOLTs),
-        getStats: () => ({ ...state.totalStats })
-    };
-}
+document.addEventListener('DOMContentLoaded', () => app.initialize());
+window.addEventListener('beforeunload', () => app.cleanup());
