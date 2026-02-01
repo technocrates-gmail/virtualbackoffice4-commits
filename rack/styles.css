@@ -1035,6 +1035,7 @@ body {
     padding: 0.9rem;
     border-radius: var(--radius-lg);
     border: 1px solid var(--border);
+    display: block !important;
 }
 
 #mobileLastSyncTime {
@@ -1636,4 +1637,5 @@ body {
     .modal-body {
         padding: 0.3rem !important;
     }
+
 }
