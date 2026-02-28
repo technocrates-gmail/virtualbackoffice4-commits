@@ -375,19 +375,20 @@ const uiRenderer = {
             if (oa.window > ob.window) return 1;
             return oa.name.localeCompare(ob.name);
         });
-        if (CONFIG.CURRENT_WINDOW === 'ALL') {
-            let currentWindow = '';
-            sortedOltKeys.forEach((key) => {
-                const olt = oltData[key];
-                if (olt.window !== currentWindow) {
-                    currentWindow = olt.window;
-                    elements.oltContainer.appendChild(this.createWindowHeader(olt.window));
-                }
-                elements.oltContainer.appendChild(this.createOLTCard(olt));
-            });
-        } else {
-            sortedOltKeys.forEach(key => elements.oltContainer.appendChild(this.createOLTCard(oltData[key])));
-        }
+let currentWindow = '';
+
+sortedOltKeys.forEach((key) => {
+    const olt = oltData[key];
+
+    if (olt.window !== currentWindow) {
+        currentWindow = olt.window;
+
+        // ✅ Always show header (even for TSN)
+        elements.oltContainer.appendChild(this.createWindowHeader(olt.window));
+    }
+
+    elements.oltContainer.appendChild(this.createOLTCard(olt));
+});
         setTimeout(() => {
             elements.oltContainer.querySelectorAll('.clickable-cell').forEach(cell => {
                 cell.addEventListener('click', eventHandlers.handleCellClick);
@@ -851,4 +852,5 @@ const app = {
 };
 
 document.addEventListener('DOMContentLoaded', () => app.initialize());
+
 window.addEventListener('beforeunload', () => app.cleanup());
