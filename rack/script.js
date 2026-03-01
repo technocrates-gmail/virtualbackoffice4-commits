@@ -422,7 +422,7 @@ sortedOltKeys.forEach((key) => {
                 <div>
                     <h3>${displayName}</h3>
                     <div class="window-header-subtitle">
-                        ${data?.count || 0} users • ${data ? 'Last updated: ' + utils.formatDateTime(data.timestamp) : 'No data'}
+                        ${data ? 'Last updated: ' + utils.formatDateTime(data.timestamp) : 'No data'}
                     </div>
                 </div>
             </div>
@@ -871,6 +871,7 @@ const app = {
 document.addEventListener('DOMContentLoaded', () => app.initialize());
 
 window.addEventListener('beforeunload', () => app.cleanup());
+
 
 
 
