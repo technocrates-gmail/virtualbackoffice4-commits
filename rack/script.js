@@ -150,7 +150,8 @@ const utils = {
             pon: user.PON || '',
             address: user.address || '',
             mac: user.MAC || '',
-            window: windowName || CONFIG.CURRENT_WINDOW
+            window: windowName || CONFIG.CURRENT_WINDOW,
+            serviceStatus: user["Service Status"] || ''
         };
     },
     debounce(func, wait) {
@@ -289,6 +290,7 @@ const dataProcessor = {
         });
 
         users.forEach(user => {
+            if ((user.serviceStatus || '').toLowerCase() !== 'active') return;
             if (!user?.pon) return;
             const ponInfo = utils.parsePON(user.pon);
             if (!ponInfo) return;
@@ -854,3 +856,4 @@ const app = {
 document.addEventListener('DOMContentLoaded', () => app.initialize());
 
 window.addEventListener('beforeunload', () => app.cleanup());
+
