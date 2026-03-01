@@ -519,7 +519,7 @@ sortedOltKeys.forEach((key) => {
             return;
         }
         let tableHTML = `<table class="user-table"><thead><tr>
-            <th>#</th><th>Name</th><th>User ID</th><th>Phone</th><th>Power (dBm)</th><th>Location</th><th>Status</th><th>PON</th><th>PON</th>
+            <th>#</th><th>Name</th><th>User ID</th><th>Phone</th><th>Power (dBm)</th><th>Location</th><th>Status</th><th>PON</th><th>Last Seen(on or before)</th>
             ${CONFIG.CURRENT_WINDOW === 'ALL' ? '<th>Window</th>' : ''}
         </tr></thead><tbody>`;
         users.forEach((user, index) => {
@@ -871,5 +871,6 @@ const app = {
 document.addEventListener('DOMContentLoaded', () => app.initialize());
 
 window.addEventListener('beforeunload', () => app.cleanup());
+
 
 
