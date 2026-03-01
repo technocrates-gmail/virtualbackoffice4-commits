@@ -90,6 +90,19 @@ const utils = {
             hour12: false
         });
     },
+    formatLastSeen(date) {
+    if (!date) return 'N/A';
+
+    const d = new Date(date);
+
+    return d.toLocaleString('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+    });
+},
     showToast(message, type = 'info', duration = 3000) {
         elements.toast.textContent = message;
         elements.toast.className = `toast ${type}`;
@@ -151,7 +164,8 @@ const utils = {
             address: user.address || '',
             mac: user.MAC || '',
             window: windowName || CONFIG.CURRENT_WINDOW,
-            serviceStatus: user["Service Status"] || ''
+            serviceStatus: user["Service Status"] || '',
+            lastSeen: user['Last Seen'] || '' 
         };
     },
     debounce(func, wait) {
@@ -505,7 +519,7 @@ sortedOltKeys.forEach((key) => {
             return;
         }
         let tableHTML = `<table class="user-table"><thead><tr>
-            <th>#</th><th>Name</th><th>User ID</th><th>Phone</th><th>Power (dBm)</th><th>Location</th><th>Status</th><th>PON</th>
+            <th>#</th><th>Name</th><th>User ID</th><th>Phone</th><th>Power (dBm)</th><th>Location</th><th>Status</th><th>PON</th><th>PON</th>
             ${CONFIG.CURRENT_WINDOW === 'ALL' ? '<th>Window</th>' : ''}
         </tr></thead><tbody>`;
         users.forEach((user, index) => {
@@ -524,6 +538,7 @@ sortedOltKeys.forEach((key) => {
                 <td title="${location}">${truncated}</td>
                 <td>${statusBadge}</td>
                 <td><code>${user.pon || 'N/A'}</code></td>
+                <td>${user.lastSeen ? utils.formatLastSeen(user.lastSeen) : 'N/A'}</td>
                 ${CONFIG.CURRENT_WINDOW === 'ALL' ? `<td><span class="window-badge-small">${user.window || 'N/A'}</span></td>` : ''}
             </tr>`;
         });
@@ -856,4 +871,5 @@ const app = {
 document.addEventListener('DOMContentLoaded', () => app.initialize());
 
 window.addEventListener('beforeunload', () => app.cleanup());
+
 
